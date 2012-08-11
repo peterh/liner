@@ -19,6 +19,7 @@ const (
 )
 
 type State struct {
+	commonState
 	handle syscall.Handle
 	key    interface{}
 	repeat uint16

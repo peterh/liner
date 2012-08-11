@@ -9,6 +9,7 @@ import (
 )
 
 type State struct {
+	commonState
 	r *bufio.Reader
 }
 
