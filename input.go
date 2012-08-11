@@ -4,8 +4,11 @@ package line
 
 import (
 	"bufio"
+	"bytes"
+	"fmt"
 	"os"
 	"strconv"
+	"strings"
 )
 
 type State struct {
@@ -14,8 +17,10 @@ type State struct {
 }
 
 func NewSimpleLine() *State {
+	bad := map[string]bool{"": true, "dumb": true, "cons25": true}
 	var s State
 	s.r = bufio.NewReader(os.Stdin)
+	s.supported = !bad[strings.ToLower(os.Getenv("TERM"))]
 	return &s
 }
 
@@ -122,4 +127,13 @@ func (s *State) readNext() (interface{}, error) {
 	}
 
 	return r, nil
+}
+
+func (s *State) promptUnsupported(p string) (string, error) {
+	fmt.Print(p)
+	linebuf, _, err := s.r.ReadLine()
+	if err != nil {
+		return "", err
+	}
+	return string(bytes.TrimSpace(linebuf)), nil
 }

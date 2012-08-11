@@ -37,7 +37,8 @@ const (
 )
 
 type commonState struct {
-	history []string
+	history   []string
+	supported bool
 }
 
 func (s *State) ReadHistory(r io.Reader) (num int, err error) {
@@ -72,4 +73,11 @@ func (s *State) WriteHistory(w io.Writer) (num int, err error) {
 		num++
 	}
 	return num, nil
+}
+
+func (s *State) Prompt(p string) (string, error) {
+	if !s.supported {
+		return s.promptUnsupported(p)
+	}
+	return s.promptUnsupported(p)
 }

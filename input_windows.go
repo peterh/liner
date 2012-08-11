@@ -1,6 +1,7 @@
 package line
 
 import (
+	"errors"
 	"syscall"
 	"unsafe"
 )
@@ -29,6 +30,7 @@ func NewSimpleLine() *State {
 	var s State
 	h, _, _ := procGetStdHandle.Call(uintptr(std_input_handle))
 	s.handle = syscall.Handle(h)
+	s.supported = true
 	return &s
 }
 
@@ -168,4 +170,8 @@ func (s *State) readNext() (interface{}, error) {
 		return s.key, nil
 	}
 	return Unknown, nil
+}
+
+func (s *State)promptUnsupported(p string) (string, error) {
+	return "", errors.New("Internal Error: Always supported on Windows")
 }
