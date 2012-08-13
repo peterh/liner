@@ -8,32 +8,32 @@ import (
 	"unicode/utf8"
 )
 
-type Action int
+type action int
 
 const (
-	Left Action = iota
-	Right
-	Up
-	Down
-	Home
-	End
-	Insert
-	Delete
-	PageUp
-	PageDown
-	F1
-	F2
-	F3
-	F4
-	F5
-	F6
-	F7
-	F8
-	F9
-	F10
-	F11
-	F12
-	Unknown
+	left action = iota
+	right
+	up
+	down
+	home
+	end
+	insert
+	del
+	pageUp
+	pageDown
+	f1
+	f2
+	f3
+	f4
+	f5
+	f6
+	f7
+	f8
+	f9
+	f10
+	f11
+	f12
+	unknown
 )
 
 type commonState struct {

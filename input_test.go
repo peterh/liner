@@ -22,12 +22,12 @@ func (s *State) expectRune(t *testing.T, r rune) {
 	}
 }
 
-func (s *State) expectAction(t *testing.T, a Action) {
+func (s *State) expectAction(t *testing.T, a action) {
 	item, err := s.readNext()
 	if err != nil {
 		t.Fatal("Expected Action %d, got error %s\n", a, err)
 	}
-	if v, ok := item.(Action); !ok {
+	if v, ok := item.(action); !ok {
 		t.Fatal("Expected Action %d, got non-Action %v\n", a, v)
 	} else {
 		if v != a {
@@ -44,5 +44,5 @@ func TestTypes(t *testing.T) {
 	s.expectRune(t, 'A')
 	s.expectRune(t, 27)
 	s.expectRune(t, 'B')
-	s.expectAction(t, Left)
+	s.expectAction(t, left)
 }

@@ -46,13 +46,13 @@ func (s *State) readNext() (interface{}, error) {
 		}
 		switch code {
 		case 'A':
-			return Up, nil
+			return up, nil
 		case 'B':
-			return Down, nil
+			return down, nil
 		case 'C':
-			return Right, nil
+			return right, nil
 		case 'D':
-			return Left, nil
+			return left, nil
 		case '0', '1', '2', '3', '4', '5', '6', '7', '8', '9':
 			num := []rune{code}
 			for {
@@ -63,7 +63,7 @@ func (s *State) readNext() (interface{}, error) {
 				if code < '0' || code > '9' {
 					if code != '~' {
 						s.r.UnreadRune()
-						return Unknown, nil
+						return unknown, nil
 					}
 					break
 				}
@@ -72,31 +72,31 @@ func (s *State) readNext() (interface{}, error) {
 			x, _ := strconv.ParseInt(string(num), 10, 32)
 			switch x {
 			case 2:
-				return Insert, nil
+				return insert, nil
 			case 3:
-				return Delete, nil
+				return del, nil
 			case 5:
-				return PageUp, nil
+				return pageUp, nil
 			case 6:
-				return PageDown, nil
+				return pageDown, nil
 			case 15:
-				return F5, nil
+				return f5, nil
 			case 17:
-				return F6, nil
+				return f6, nil
 			case 18:
-				return F7, nil
+				return f7, nil
 			case 19:
-				return F8, nil
+				return f8, nil
 			case 20:
-				return F9, nil
+				return f9, nil
 			case 21:
-				return F10, nil
+				return f10, nil
 			case 23:
-				return F11, nil
+				return f11, nil
 			case 24:
-				return F12, nil
+				return f12, nil
 			default:
-				return Unknown, nil
+				return unknown, nil
 			}
 		}
 
@@ -107,19 +107,19 @@ func (s *State) readNext() (interface{}, error) {
 		}
 		switch code {
 		case 'H':
-			return Home, nil
+			return home, nil
 		case 'F':
-			return End, nil
+			return end, nil
 		case 'P':
-			return F1, nil
+			return f1, nil
 		case 'Q':
-			return F2, nil
+			return f2, nil
 		case 'R':
-			return F3, nil
+			return f3, nil
 		case 'S':
-			return F4, nil
+			return f4, nil
 		default:
-			return Unknown, nil
+			return unknown, nil
 		}
 	default:
 		s.r.UnreadRune()

@@ -113,49 +113,49 @@ func (s *State) readNext() (interface{}, error) {
 		} else {
 			switch ke.VirtualKeyCode {
 			case vk_prior:
-				s.key = PageUp
+				s.key = pageUp
 			case vk_next:
-				s.key = PageDown
+				s.key = pageDown
 			case vk_end:
-				s.key = End
+				s.key = end
 			case vk_home:
-				s.key = Home
+				s.key = home
 			case vk_left:
-				s.key = Left
+				s.key = left
 			case vk_right:
-				s.key = Right
+				s.key = right
 			case vk_up:
-				s.key = Up
+				s.key = up
 			case vk_down:
-				s.key = Down
+				s.key = down
 			case vk_insert:
-				s.key = Insert
+				s.key = insert
 			case vk_delete:
-				s.key = Delete
+				s.key = del
 			case vk_f1:
-				s.key = F1
+				s.key = f1
 			case vk_f2:
-				s.key = F2
+				s.key = f2
 			case vk_f3:
-				s.key = F3
+				s.key = f3
 			case vk_f4:
-				s.key = F4
+				s.key = f4
 			case vk_f5:
-				s.key = F5
+				s.key = f5
 			case vk_f6:
-				s.key = F6
+				s.key = f6
 			case vk_f7:
-				s.key = F7
+				s.key = f7
 			case vk_f8:
-				s.key = F8
+				s.key = f8
 			case vk_f9:
-				s.key = F9
+				s.key = f9
 			case vk_f10:
-				s.key = F10
+				s.key = f10
 			case vk_f11:
-				s.key = F11
+				s.key = f11
 			case vk_f12:
-				s.key = F12
+				s.key = f12
 			default:
 				// Eat modifier keys
 				// TODO: return Action(Unknown) if the key isn't a
@@ -169,9 +169,9 @@ func (s *State) readNext() (interface{}, error) {
 		}
 		return s.key, nil
 	}
-	return Unknown, nil
+	return unknown, nil
 }
 
-func (s *State)promptUnsupported(p string) (string, error) {
+func (s *State) promptUnsupported(p string) (string, error) {
 	return "", errors.New("Internal Error: Always supported on Windows")
 }
