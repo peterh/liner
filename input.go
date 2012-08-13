@@ -19,6 +19,8 @@ type State struct {
 	origMode termios
 }
 
+// NewLiner initializes a new *State, and sets the terminal into raw mode. To
+// restore the terminal to its previous state, call State.Close().
 func NewLiner() *State {
 	bad := map[string]bool{"": true, "dumb": true, "cons25": true}
 	var s State
@@ -149,6 +151,7 @@ func (s *State) promptUnsupported(p string) (string, error) {
 	return string(bytes.TrimSpace(linebuf)), nil
 }
 
+// Close returns the terminal to its previous mode
 func (s *State) Close() error {
 	if s.supported {
 		syscall.Syscall(syscall.SYS_IOCTL, uintptr(syscall.Stdin), setTermios, uintptr(unsafe.Pointer(&s.origMode)))

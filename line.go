@@ -1,3 +1,8 @@
+/*
+Package liner implements a simple command line editor, inspired by linenoise
+(https://github.com/antirez/linenoise/). This package supports WIN32 in
+addition to the xterm codes supported by everything else.
+*/
 package liner
 
 import (
@@ -41,6 +46,8 @@ type commonState struct {
 	supported bool
 }
 
+// ReadHistory reads scrollback history from r. Returns the number of lines
+// read, and any read error (except io.EOF).
 func (s *State) ReadHistory(r io.Reader) (num int, err error) {
 	in := bufio.NewReader(r)
 	num = 0
@@ -64,6 +71,8 @@ func (s *State) ReadHistory(r io.Reader) (num int, err error) {
 	return num, nil
 }
 
+// WriteHistory writes scrollback history to w. Returns the number of lines
+// successfully written, and any write error.
 func (s *State) WriteHistory(w io.Writer) (num int, err error) {
 	for _, item := range s.history {
 		_, err := fmt.Fprintln(w, item)
@@ -94,6 +103,9 @@ const (
 	bs    = 127
 )
 
+
+// Prompt displays p, and then waits for user input. Prompt allows line editing
+// if the terminal supports it.
 func (s *State) Prompt(p string) (string, error) {
 	if !s.supported {
 		return s.promptUnsupported(p)
