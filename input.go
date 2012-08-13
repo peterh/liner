@@ -9,11 +9,14 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"syscall"
+	"unsafe"
 )
 
 type State struct {
 	commonState
-	r *bufio.Reader
+	r        *bufio.Reader
+	origMode termios
 }
 
 func NewLiner() *State {
@@ -21,6 +24,16 @@ func NewLiner() *State {
 	var s State
 	s.r = bufio.NewReader(os.Stdin)
 	s.supported = !bad[strings.ToLower(os.Getenv("TERM"))]
+
+	if s.supported {
+		syscall.Syscall(syscall.SYS_IOCTL, uintptr(syscall.Stdin), getTermios, uintptr(unsafe.Pointer(&s.origMode)))
+		mode := s.origMode
+		mode.Iflag &^= icrnl | inpck | istrip | ixon
+		mode.Cflag |= cs8
+		mode.Lflag &^= syscall.ECHO | icanon | iexten
+		syscall.Syscall(syscall.SYS_IOCTL, uintptr(syscall.Stdin), setTermios, uintptr(unsafe.Pointer(&mode)))
+	}
+
 	return &s
 }
 
@@ -134,4 +147,11 @@ func (s *State) promptUnsupported(p string) (string, error) {
 		return "", err
 	}
 	return string(bytes.TrimSpace(linebuf)), nil
+}
+
+func (s *State) Close() error {
+	if s.supported {
+		syscall.Syscall(syscall.SYS_IOCTL, uintptr(syscall.Stdin), setTermios, uintptr(unsafe.Pointer(&s.origMode)))
+	}
+	return nil
 }

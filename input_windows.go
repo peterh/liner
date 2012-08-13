@@ -11,6 +11,8 @@ var (
 
 	procGetStdHandle     = kernel32.NewProc("GetStdHandle")
 	procReadConsoleInput = kernel32.NewProc("ReadConsoleInputW")
+	procGetConsoleMode   = kernel32.NewProc("GetConsoleMode")
+	procSetConsoleMode   = kernel32.NewProc("SetConsoleMode")
 )
 
 const (
@@ -21,15 +23,38 @@ const (
 
 type State struct {
 	commonState
-	handle syscall.Handle
-	key    interface{}
-	repeat uint16
+	handle   syscall.Handle
+	origMode uint32
+	key      interface{}
+	repeat   uint16
 }
+
+const (
+	enableEchoInput      = 0x4
+	enableInsertMode     = 0x20
+	enableLineInput      = 0x2
+	enableMouseInput     = 0x10
+	enableProcessedInput = 0x1
+	enableQuickEditMode  = 0x40
+	enableWindowInput    = 0x8
+)
 
 func NewLiner() *State {
 	var s State
 	h, _, _ := procGetStdHandle.Call(uintptr(std_input_handle))
 	s.handle = syscall.Handle(h)
+
+	ok, _, _ := procGetConsoleMode.Call(h, uintptr(unsafe.Pointer(&s.origMode)))
+	if ok != 0 {
+		mode := s.origMode
+		mode &^= enableEchoInput
+		mode &^= enableInsertMode
+		mode &^= enableLineInput
+		mode &^= enableMouseInput
+		mode |= enableWindowInput
+		procSetConsoleMode.Call(h, uintptr(mode))
+	}
+
 	s.supported = true
 	return &s
 }
@@ -174,4 +199,9 @@ func (s *State) readNext() (interface{}, error) {
 
 func (s *State) promptUnsupported(p string) (string, error) {
 	return "", errors.New("Internal Error: Always supported on Windows")
+}
+
+func (s *State) Close() error {
+	procSetConsoleMode.Call(uintptr(s.handle), uintptr(s.origMode))
+	return nil
 }
