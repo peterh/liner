@@ -24,8 +24,6 @@ func NewLiner() *State {
 	return &s
 }
 
-const esc = 27
-
 func (s *State) readNext() (interface{}, error) {
 	r, _, err := s.r.ReadRune()
 	if err != nil {

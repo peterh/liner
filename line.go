@@ -75,9 +75,49 @@ func (s *State) WriteHistory(w io.Writer) (num int, err error) {
 	return num, nil
 }
 
+const (
+	ctrlA = 1
+	ctrlB = 2
+	ctrlC = 3
+	ctrlD = 4
+	ctrlE = 5
+	ctrlF = 6
+	ctrlH = 8
+	lf    = 10
+	ctrlK = 11
+	ctrlL = 12
+	cr    = 13
+	ctrlN = 14
+	ctrlP = 16
+	ctrlU = 21
+	esc   = 27
+	bs    = 127
+)
+
 func (s *State) Prompt(p string) (string, error) {
 	if !s.supported {
 		return s.promptUnsupported(p)
 	}
-	return s.promptUnsupported(p)
+
+	fmt.Print(p)
+	line := make([]rune, 0)
+mainLoop:
+	for {
+		next, err := s.readNext()
+		if err != nil {
+			return "", err
+		}
+		switch v := next.(type) {
+		case rune:
+			switch v {
+			case cr, lf:
+				break mainLoop
+			default:
+				line = append(line, v)
+				fmt.Printf("%c", v)
+			}
+		case action:
+		}
+	}
+	return string(line), nil
 }
