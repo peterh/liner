@@ -1,4 +1,4 @@
-package line
+package liner
 
 import (
 	"errors"
@@ -26,7 +26,7 @@ type State struct {
 	repeat uint16
 }
 
-func NewSimpleLine() *State {
+func NewLiner() *State {
 	var s State
 	h, _, _ := procGetStdHandle.Call(uintptr(std_input_handle))
 	s.handle = syscall.Handle(h)

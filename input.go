@@ -1,6 +1,6 @@
 // +build !windows
 
-package line
+package liner
 
 import (
 	"bufio"
@@ -16,7 +16,7 @@ type State struct {
 	r *bufio.Reader
 }
 
-func NewSimpleLine() *State {
+func NewLiner() *State {
 	bad := map[string]bool{"": true, "dumb": true, "cons25": true}
 	var s State
 	s.r = bufio.NewReader(os.Stdin)

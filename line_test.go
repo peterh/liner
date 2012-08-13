@@ -1,6 +1,6 @@
 // +build !windows
 
-package line
+package liner
 
 import (
 	"bytes"
