@@ -13,6 +13,9 @@ import (
 	"unicode/utf8"
 )
 
+// HistoryLimit is the maximum number of entries saved in the scrollback history.
+const HistoryLimit = 100
+
 type action int
 
 const (
@@ -67,6 +70,9 @@ func (s *State) ReadHistory(r io.Reader) (num int, err error) {
 		}
 		num++
 		s.history = append(s.history, string(line))
+		if len(s.history) > HistoryLimit {
+			s.history = s.history[1:]
+		}
 	}
 	return num, nil
 }
@@ -82,6 +88,20 @@ func (s *State) WriteHistory(w io.Writer) (num int, err error) {
 		num++
 	}
 	return num, nil
+}
+
+// AppendHistory appends an entry to the scrollback history. AppendHistory
+// should be called iff Prompt returns a valid command.
+func (s *State) AppendHistory(item string) {
+	if len(s.history) > 0 {
+		if item == s.history[len(s.history)-1] {
+			return
+		}
+	}
+	s.history = append(s.history, item)
+	if len(s.history) > HistoryLimit {
+		s.history = s.history[1:]
+	}
 }
 
 const (
@@ -130,6 +150,9 @@ func (s *State) Prompt(p string) (string, error) {
 	fmt.Print(p)
 	line := make([]rune, 0)
 	pos := 0
+	historyPos := len(s.history)
+	var historyEnd string
+
 mainLoop:
 	for {
 		next, err := s.readNext()
@@ -175,6 +198,31 @@ mainLoop:
 					line = line[:pos]
 					s.refresh(p, string(line), pos)
 				}
+			case ctrlP: // up
+				if historyPos > 0 {
+					if historyPos == len(s.history) {
+						historyEnd = string(line)
+					}
+					historyPos--
+					line = []rune(s.history[historyPos])
+					pos = len(line)
+					s.refresh(p, string(line), pos)
+				} else {
+					fmt.Print(beep)
+				}
+			case ctrlN: // down
+				if historyPos < len(s.history) {
+					historyPos++
+					if historyPos == len(s.history) {
+						line = []rune(historyEnd)
+					} else {
+						line = []rune(s.history[historyPos])
+					}
+					pos = len(line)
+					s.refresh(p, string(line), pos)
+				} else {
+					fmt.Print(beep)
+				}
 			case ctrlT: // transpose prev rune with rune under cursor
 				if len(line) < 2 || pos < 1 {
 					fmt.Print(beep)
@@ -202,7 +250,7 @@ mainLoop:
 				pos = 0
 				s.refresh(p, string(line), pos)
 			// Catch unhandled control codes (anything <= 31)
-			case 0, 3, 7, 9, 14, 15, 16:
+			case 0, 3, 7, 9, 15:
 				fallthrough
 			case 17, 18, 19, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31:
 				fmt.Print(beep)
@@ -234,6 +282,29 @@ mainLoop:
 			case right:
 				if pos < len(line) {
 					pos++
+				} else {
+					fmt.Print(beep)
+				}
+			case up:
+				if historyPos > 0 {
+					if historyPos == len(s.history) {
+						historyEnd = string(line)
+					}
+					historyPos--
+					line = []rune(s.history[historyPos])
+					pos = len(line)
+				} else {
+					fmt.Print(beep)
+				}
+			case down:
+				if historyPos < len(s.history) {
+					historyPos++
+					if historyPos == len(s.history) {
+						line = []rune(historyEnd)
+					} else {
+						line = []rune(s.history[historyPos])
+					}
+					pos = len(line)
 				} else {
 					fmt.Print(beep)
 				}
