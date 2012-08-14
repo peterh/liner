@@ -41,12 +41,14 @@ const (
 	f10
 	f11
 	f12
+	shiftTab
 	unknown
 )
 
 type commonState struct {
 	history   []string
 	supported bool
+	completer Completer
 }
 
 // ReadHistory reads scrollback history from r. Returns the number of lines
@@ -104,6 +106,16 @@ func (s *State) AppendHistory(item string) {
 	}
 }
 
+// Completer takes the currently edited line and returns a list
+// of completion candidates.
+type Completer func(line string) []string
+
+// SetCompleter sets the completion function that Liner will call to
+// fetch completion candidates when the user presses tab.
+func (s *State) SetCompleter(f Completer) {
+	s.completer = f
+}
+
 const (
 	ctrlA = 1
 	ctrlB = 2
@@ -112,6 +124,7 @@ const (
 	ctrlE = 5
 	ctrlF = 6
 	ctrlH = 8
+	tab   = 9
 	lf    = 10
 	ctrlK = 11
 	ctrlL = 12
@@ -140,6 +153,50 @@ func (s *State) refresh(prompt string, buf string, pos int) error {
 	return err
 }
 
+func (s *State) tabComplete(p string, line []rune) ([]rune, interface{}, error) {
+	if s.completer == nil {
+		return line, rune(tab), nil
+	}
+	list := s.completer(string(line))
+	if len(list) <= 0 {
+		return line, rune(tab), nil
+	}
+	listEntry := 0
+	for {
+		pick := list[listEntry]
+		s.refresh(p, pick, len(pick))
+
+		next, err := s.readNext()
+		if err != nil {
+			return line, rune(tab), err
+		}
+		if key, ok := next.(rune); ok {
+			if key == tab {
+				if listEntry < len(list)-1 {
+					listEntry++
+				} else {
+					fmt.Print(beep)
+				}
+				continue
+			}
+			if key == esc {
+				return line, rune(esc), nil
+			}
+		}
+		if a, ok := next.(action); ok && a == shiftTab {
+			if listEntry > 0 {
+				listEntry--
+			} else {
+				fmt.Print(beep)
+			}
+			continue
+		}
+		return []rune(pick), next, nil
+	}
+	// Not reached
+	return line, rune(tab), nil
+}
+
 // Prompt displays p, and then waits for user input. Prompt allows line editing
 // if the terminal supports it.
 func (s *State) Prompt(p string) (string, error) {
@@ -159,6 +216,18 @@ mainLoop:
 		if err != nil {
 			return "", err
 		}
+
+		if pos == len(line) {
+			if key, ok := next.(rune); ok && key == tab {
+				line, next, err = s.tabComplete(p, line)
+				if err != nil {
+					return "", err
+				}
+				pos = len(line)
+				s.refresh(p, string(line), pos)
+			}
+		}
+
 		switch v := next.(type) {
 		case rune:
 			switch v {

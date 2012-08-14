@@ -89,6 +89,7 @@ type key_event_record struct {
 }
 
 const (
+	vk_tab    = 0x09
 	vk_prior  = 0x21
 	vk_next   = 0x22
 	vk_end    = 0x23
@@ -111,6 +112,16 @@ const (
 	vk_f10    = 0x79
 	vk_f11    = 0x7a
 	vk_f12    = 0x7b
+)
+
+const (
+	shiftPressed     = 0x0010
+	leftAltPressed   = 0x0002
+	leftCtrlPressed  = 0x0008
+	rightAltPressed  = 0x0001
+	rightCtrlPressed = 0x0004
+
+	modKeys = shiftPressed | leftAltPressed | rightAltPressed | leftCtrlPressed | rightCtrlPressed
 )
 
 func (s *State) readNext() (interface{}, error) {
@@ -139,7 +150,9 @@ func (s *State) readNext() (interface{}, error) {
 			continue
 		}
 
-		if ke.Char > 0 {
+		if ke.VirtualKeyCode == vk_tab && ke.ControlKeyState&modKeys == shiftPressed {
+			s.key = shiftTab
+		} else if ke.Char > 0 {
 			s.key = rune(ke.Char)
 		} else {
 			switch ke.VirtualKeyCode {
