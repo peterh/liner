@@ -104,18 +104,18 @@ const (
 )
 
 const (
-	cursorPos   = "\x1b[%dG"
-	eraseLine   = "\x1b[0K"
-	eraseScreen = "\x1b[H\x1b[2J"
-	beep        = "\a"
+	beep = "\a"
 )
 
 func (s *State) refresh(prompt string, buf string, pos int) error {
-	fmt.Printf(cursorPos, 0)
-	fmt.Print(prompt)
-	fmt.Print(buf)
-	fmt.Print(eraseLine)
-	_, err := fmt.Printf(cursorPos, utf8.RuneCountInString(prompt)+pos+1)
+	s.cursorPos(0)
+	_, err := fmt.Print(prompt)
+	if err != nil {
+		return err
+	}
+	_, err = fmt.Print(buf)
+	s.eraseLine()
+	s.cursorPos(utf8.RuneCountInString(prompt) + pos)
 	return err
 }
 

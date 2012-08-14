@@ -9,10 +9,13 @@ import (
 var (
 	kernel32 = syscall.NewLazyDLL("kernel32.dll")
 
-	procGetStdHandle     = kernel32.NewProc("GetStdHandle")
-	procReadConsoleInput = kernel32.NewProc("ReadConsoleInputW")
-	procGetConsoleMode   = kernel32.NewProc("GetConsoleMode")
-	procSetConsoleMode   = kernel32.NewProc("SetConsoleMode")
+	procGetStdHandle               = kernel32.NewProc("GetStdHandle")
+	procReadConsoleInput           = kernel32.NewProc("ReadConsoleInputW")
+	procGetConsoleMode             = kernel32.NewProc("GetConsoleMode")
+	procSetConsoleMode             = kernel32.NewProc("SetConsoleMode")
+	procSetConsoleCursorPosition   = kernel32.NewProc("SetConsoleCursorPosition")
+	procGetConsoleScreenBufferInfo = kernel32.NewProc("GetConsoleScreenBufferInfo")
+	procFillConsoleOutputCharacter = kernel32.NewProc("FillConsoleOutputCharacterW")
 )
 
 const (
@@ -24,6 +27,7 @@ const (
 type State struct {
 	commonState
 	handle   syscall.Handle
+	hOut     syscall.Handle
 	origMode uint32
 	key      interface{}
 	repeat   uint16
@@ -43,6 +47,8 @@ func NewLiner() *State {
 	var s State
 	h, _, _ := procGetStdHandle.Call(uintptr(std_input_handle))
 	s.handle = syscall.Handle(h)
+	h, _, _ = procGetStdHandle.Call(uintptr(std_output_handle))
+	s.hOut = syscall.Handle(h)
 
 	ok, _, _ := procGetConsoleMode.Call(h, uintptr(unsafe.Pointer(&s.origMode)))
 	if ok != 0 {
