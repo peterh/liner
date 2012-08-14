@@ -128,7 +128,7 @@ func (s *State) readNext() (interface{}, error) {
 		if input.eventType != key_event {
 			continue
 		}
-		ke := (*key_event_record)(unsafe.Pointer(&input))
+		ke := (*key_event_record)(unsafe.Pointer(&input.blob[0]))
 		if ke.KeyDown == 0 {
 			continue
 		}
