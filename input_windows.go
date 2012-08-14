@@ -45,12 +45,12 @@ const (
 
 func NewLiner() *State {
 	var s State
-	h, _, _ := procGetStdHandle.Call(uintptr(std_input_handle))
-	s.handle = syscall.Handle(h)
-	h, _, _ = procGetStdHandle.Call(uintptr(std_output_handle))
-	s.hOut = syscall.Handle(h)
+	hIn, _, _ := procGetStdHandle.Call(uintptr(std_input_handle))
+	s.handle = syscall.Handle(hIn)
+	hOut, _, _ := procGetStdHandle.Call(uintptr(std_output_handle))
+	s.hOut = syscall.Handle(hOut)
 
-	ok, _, _ := procGetConsoleMode.Call(h, uintptr(unsafe.Pointer(&s.origMode)))
+	ok, _, _ := procGetConsoleMode.Call(hIn, uintptr(unsafe.Pointer(&s.origMode)))
 	if ok != 0 {
 		mode := s.origMode
 		mode &^= enableEchoInput
@@ -58,7 +58,7 @@ func NewLiner() *State {
 		mode &^= enableLineInput
 		mode &^= enableMouseInput
 		mode |= enableWindowInput
-		procSetConsoleMode.Call(h, uintptr(mode))
+		procSetConsoleMode.Call(hIn, uintptr(mode))
 	}
 
 	s.supported = true
