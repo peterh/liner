@@ -103,6 +103,21 @@ const (
 	bs    = 127
 )
 
+const (
+	cursorPos   = "\x1b[%dG"
+	eraseLine   = "\x1b[0K"
+	eraseScreen = "\x1b[H\x1b[2J"
+	beep        = "\a"
+)
+
+func (s *State) refresh(prompt string, buf string, pos int) error {
+	fmt.Printf(cursorPos, 0)
+	fmt.Print(prompt)
+	fmt.Print(buf)
+	fmt.Print(eraseLine)
+	_, err := fmt.Printf(cursorPos, utf8.RuneCountInString(prompt)+pos+1)
+	return err
+}
 
 // Prompt displays p, and then waits for user input. Prompt allows line editing
 // if the terminal supports it.
@@ -113,6 +128,7 @@ func (s *State) Prompt(p string) (string, error) {
 
 	fmt.Print(p)
 	line := make([]rune, 0)
+	pos := 0
 mainLoop:
 	for {
 		next, err := s.readNext()
@@ -124,11 +140,52 @@ mainLoop:
 			switch v {
 			case cr, lf:
 				break mainLoop
+			case ctrlH, bs:
+				if pos <= 0 {
+					fmt.Print(beep)
+				} else {
+					line = append(line[:pos-1], line[pos:]...)
+					pos--
+					s.refresh(p, string(line), pos)
+				}
+			// Catch control codes (anything unhandled 0-31)
+			case 0, 1, 2, 3, 4, 5, 6, 7, 9, 11, 12, 14, 15, 16:
+				fallthrough
+			case 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31:
+				fmt.Print(beep)
 			default:
-				line = append(line, v)
-				fmt.Printf("%c", v)
+				if pos == len(line) {
+					line = append(line, v)
+					fmt.Printf("%c", v)
+					pos++
+				} else {
+					line = append(line[:pos], append([]rune{v}, line[pos:]...)...)
+					pos++
+					s.refresh(p, string(line), pos)
+				}
 			}
 		case action:
+			switch v {
+			case del:
+				if pos >= len(line) {
+					fmt.Print(beep)
+				} else {
+					line = append(line[:pos], line[pos+1:]...)
+				}
+			case left:
+				if pos > 0 {
+					pos--
+				} else {
+					fmt.Print(beep)
+				}
+			case right:
+				if pos < len(line) {
+					pos++
+				} else {
+					fmt.Print(beep)
+				}
+			}
+			s.refresh(p, string(line), pos)
 		}
 	}
 	return string(line), nil
