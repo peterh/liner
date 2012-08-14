@@ -6,6 +6,42 @@ import (
 	"testing"
 )
 
+func TestAppend(t *testing.T) {
+	var s State
+	s.AppendHistory("foo")
+	s.AppendHistory("bar")
+
+	var out bytes.Buffer
+	num, err := s.WriteHistory(&out)
+	if err != nil {
+		t.Fatal("Unexpected error writing history", err)
+	}
+	if num != 2 {
+		t.Fatalf("Expected 2 history entries, got %d", num)
+	}
+
+	s.AppendHistory("baz")
+	num, err = s.WriteHistory(&out)
+	if err != nil {
+		t.Fatal("Unexpected error writing history", err)
+	}
+	if num != 3 {
+		t.Fatalf("Expected 3 history entries, got %d", num)
+	}
+
+	s.AppendHistory("baz")
+	num, err = s.WriteHistory(&out)
+	if err != nil {
+		t.Fatal("Unexpected error writing history", err)
+	}
+	if num != 3 {
+		t.Fatalf("Expected 3 history entries after duplicate append, got %d", num)
+	}
+
+	s.AppendHistory("baz")
+
+}
+
 func TestHistory(t *testing.T) {
 	input := `foo
 bar
