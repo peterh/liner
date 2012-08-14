@@ -42,6 +42,7 @@ const (
 	f11
 	f12
 	shiftTab
+	winch
 	unknown
 )
 
@@ -49,6 +50,7 @@ type commonState struct {
 	history   []string
 	supported bool
 	completer Completer
+	columns   int
 }
 
 // ReadHistory reads scrollback history from r. Returns the number of lines
@@ -147,9 +149,52 @@ func (s *State) refresh(prompt string, buf string, pos int) error {
 	if err != nil {
 		return err
 	}
-	_, err = fmt.Print(buf)
-	s.eraseLine()
-	s.cursorPos(utf8.RuneCountInString(prompt) + pos)
+
+	pLen := utf8.RuneCountInString(prompt)
+	bLen := utf8.RuneCountInString(buf)
+	if pLen+bLen <= s.columns {
+		_, err = fmt.Print(buf)
+		s.eraseLine()
+		s.cursorPos(pLen + pos)
+	} else {
+		// Find space available
+		space := s.columns - pLen
+		space-- // space for cursor
+		start := pos - space/2
+		end := start + space
+		if end > bLen {
+			end = bLen
+			start = end - space
+		}
+		if start < 0 {
+			start = 0
+			end = space
+		}
+		pos -= start
+
+		// Leave space for markers
+		if start > 0 {
+			start++
+		}
+		if end < bLen {
+			end--
+		}
+		line := []rune(buf)
+		line = line[start:end]
+
+		// Output
+		if start > 0 {
+			fmt.Print("{")
+		}
+		fmt.Print(string(line))
+		if end < bLen {
+			fmt.Print("}")
+		}
+
+		// Set cursor position
+		s.eraseLine()
+		s.cursorPos(pLen + pos)
+	}
 	return err
 }
 
@@ -203,6 +248,8 @@ func (s *State) Prompt(p string) (string, error) {
 	if !s.supported {
 		return s.promptUnsupported(p)
 	}
+
+	s.getColumns()
 
 	fmt.Print(p)
 	line := make([]rune, 0)
@@ -324,7 +371,7 @@ mainLoop:
 			case 17, 18, 19, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31:
 				fmt.Print(beep)
 			default:
-				if pos == len(line) {
+				if pos == len(line) && len(p)+len(line) < s.columns {
 					line = append(line, v)
 					fmt.Printf("%c", v)
 					pos++

@@ -142,6 +142,11 @@ func (s *State) readNext() (interface{}, error) {
 			return nil, err
 		}
 
+		if input.eventType == window_buffer_size_event {
+			xy := (*coord)(unsafe.Pointer(&input.blob[0]))
+			s.columns = int(xy.x)
+			return winch, nil
+		}
 		if input.eventType != key_event {
 			continue
 		}

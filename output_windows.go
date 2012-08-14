@@ -46,3 +46,9 @@ func (s *State) eraseScreen() {
 		uintptr(unsafe.Pointer(&numWritten)))
 	procSetConsoleCursorPosition.Call(uintptr(s.hOut), 0)
 }
+
+func (s *State) getColumns() {
+	var sbi consoleScreenBufferInfo
+	procGetConsoleScreenBufferInfo.Call(uintptr(s.hOut), uintptr(unsafe.Pointer(&sbi)))
+	s.columns = int(sbi.dwSize.x)
+}
