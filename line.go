@@ -98,6 +98,7 @@ const (
 	cr    = 13
 	ctrlN = 14
 	ctrlP = 16
+	ctrlT = 20
 	ctrlU = 21
 	esc   = 27
 	bs    = 127
@@ -140,7 +141,55 @@ mainLoop:
 			switch v {
 			case cr, lf:
 				break mainLoop
-			case ctrlH, bs:
+			case ctrlA: // Start of line
+				pos = 0
+				s.refresh(p, string(line), pos)
+			case ctrlE: // End of line
+				pos = len(line)
+				s.refresh(p, string(line), pos)
+			case ctrlB: // left
+				if pos > 0 {
+					pos--
+					s.refresh(p, string(line), pos)
+				} else {
+					fmt.Print(beep)
+				}
+			case ctrlF: // right
+				if pos < len(line) {
+					pos++
+					s.refresh(p, string(line), pos)
+				} else {
+					fmt.Print(beep)
+				}
+			case ctrlD: // del
+				if pos >= len(line) {
+					fmt.Print(beep)
+				} else {
+					line = append(line[:pos], line[pos+1:]...)
+					s.refresh(p, string(line), pos)
+				}
+			case ctrlK: // delete remainder of line
+				if pos >= len(line) {
+					fmt.Print(beep)
+				} else {
+					line = line[:pos]
+					s.refresh(p, string(line), pos)
+				}
+			case ctrlT: // transpose prev rune with rune under cursor
+				if len(line) < 2 || pos < 1 {
+					fmt.Print(beep)
+				} else {
+					if pos == len(line) {
+						pos--
+					}
+					line[pos-1], line[pos] = line[pos], line[pos-1]
+					pos++
+					s.refresh(p, string(line), pos)
+				}
+			case ctrlL: // clear screen
+				s.eraseScreen()
+				s.refresh(p, string(line), pos)
+			case ctrlH, bs: // Backspace
 				if pos <= 0 {
 					fmt.Print(beep)
 				} else {
@@ -148,10 +197,14 @@ mainLoop:
 					pos--
 					s.refresh(p, string(line), pos)
 				}
-			// Catch control codes (anything unhandled 0-31)
-			case 0, 1, 2, 3, 4, 5, 6, 7, 9, 11, 12, 14, 15, 16:
+			case ctrlU: // Erase entire line
+				line = line[:0]
+				pos = 0
+				s.refresh(p, string(line), pos)
+			// Catch unhandled control codes (anything <= 31)
+			case 0, 3, 7, 9, 14, 15, 16:
 				fallthrough
-			case 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31:
+			case 17, 18, 19, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31:
 				fmt.Print(beep)
 			default:
 				if pos == len(line) {
