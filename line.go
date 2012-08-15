@@ -279,6 +279,7 @@ mainLoop:
 		case rune:
 			switch v {
 			case cr, lf:
+				fmt.Println()
 				break mainLoop
 			case ctrlA: // Start of line
 				pos = 0
