@@ -155,7 +155,10 @@ func (s *State) readNext() (interface{}, error) {
 				}
 				if code < '0' || code > '9' {
 					if code != '~' {
-						return unknown, nil
+						// escape code went off the rails
+						rv := s.pending[0]
+						s.pending = s.pending[1:]
+						return rv, nil
 					}
 					break
 				}
@@ -219,7 +222,9 @@ func (s *State) readNext() (interface{}, error) {
 			return unknown, nil
 		}
 	default:
-		return unknown, nil
+		rv := s.pending[0]
+		s.pending = s.pending[1:]
+		return rv, nil
 	}
 
 	// not reached
