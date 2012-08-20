@@ -46,6 +46,10 @@ const (
 	unknown
 )
 
+var (
+	ErrExitMainLoop error = errors.New("Exit main loop")
+)
+
 type commonState struct {
 	history   []string
 	supported bool
@@ -302,6 +306,10 @@ mainLoop:
 					fmt.Print(beep)
 				}
 			case ctrlD: // del
+				if pos == 0 && len(line) == 0 {
+					// exit
+					return "", ErrExitMainLoop
+				}
 				if pos >= len(line) {
 					fmt.Print(beep)
 				} else {
