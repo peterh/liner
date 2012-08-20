@@ -302,6 +302,10 @@ mainLoop:
 					fmt.Print(beep)
 				}
 			case ctrlD: // del
+				if pos == 0 && len(line) == 0 {
+					// exit
+					return "", io.EOF
+				}
 				if pos >= len(line) {
 					fmt.Print(beep)
 				} else {
