@@ -14,7 +14,7 @@ import (
 )
 
 // HistoryLimit is the maximum number of entries saved in the scrollback history.
-const HistoryLimit = 100
+const HistoryLimit = 1000
 
 type action int
 
