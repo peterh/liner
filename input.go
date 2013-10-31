@@ -153,46 +153,46 @@ func (s *State) readNext() (interface{}, error) {
 					}
 					return nil, err
 				}
-				if code < '0' || code > '9' {
-					if code != '~' {
-						// escape code went off the rails
-						rv := s.pending[0]
-						s.pending = s.pending[1:]
-						return rv, nil
+				switch code {
+				case '0', '1', '2', '3', '4', '5', '6', '7', '8', '9':
+					num = append(num, code)
+				case '~':
+					s.pending = s.pending[:0] // escape code complete
+					x, _ := strconv.ParseInt(string(num), 10, 32)
+					switch x {
+					case 2:
+						return insert, nil
+					case 3:
+						return del, nil
+					case 5:
+						return pageUp, nil
+					case 6:
+						return pageDown, nil
+					case 15:
+						return f5, nil
+					case 17:
+						return f6, nil
+					case 18:
+						return f7, nil
+					case 19:
+						return f8, nil
+					case 20:
+						return f9, nil
+					case 21:
+						return f10, nil
+					case 23:
+						return f11, nil
+					case 24:
+						return f12, nil
+					default:
+						return unknown, nil
 					}
-					break
+				default:
+					// unrecognized escape code
+					rv := s.pending[0]
+					s.pending = s.pending[1:]
+					return rv, nil
 				}
-				num = append(num, code)
-			}
-			s.pending = s.pending[:0] // escape code complete
-			x, _ := strconv.ParseInt(string(num), 10, 32)
-			switch x {
-			case 2:
-				return insert, nil
-			case 3:
-				return del, nil
-			case 5:
-				return pageUp, nil
-			case 6:
-				return pageDown, nil
-			case 15:
-				return f5, nil
-			case 17:
-				return f6, nil
-			case 18:
-				return f7, nil
-			case 19:
-				return f8, nil
-			case 20:
-				return f9, nil
-			case 21:
-				return f10, nil
-			case 23:
-				return f11, nil
-			case 24:
-				return f12, nil
-			default:
-				return unknown, nil
 			}
 		}
 
