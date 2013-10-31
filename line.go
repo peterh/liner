@@ -42,6 +42,8 @@ const (
 	f11
 	f12
 	shiftTab
+	wordLeft
+	wordRight
 	winch
 	unknown
 )

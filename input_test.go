@@ -37,7 +37,7 @@ func (s *State) expectAction(t *testing.T, a action) {
 }
 
 func TestTypes(t *testing.T) {
-	input := []byte{'A', 27, 'B', 27, 91, 68}
+	input := []byte{'A', 27, 'B', 27, 91, 68, 27, '[', '1', ';', '5', 'D', 'e'}
 	var s State
 	s.r = bufio.NewReader(bytes.NewBuffer(input))
 
@@ -55,4 +55,7 @@ func TestTypes(t *testing.T) {
 	s.expectRune(t, 27)
 	s.expectRune(t, 'B')
 	s.expectAction(t, left)
+	s.expectAction(t, wordLeft)
+
+	s.expectRune(t, 'e')
 }

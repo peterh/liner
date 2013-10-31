@@ -156,6 +156,51 @@ func (s *State) readNext() (interface{}, error) {
 				switch code {
 				case '0', '1', '2', '3', '4', '5', '6', '7', '8', '9':
 					num = append(num, code)
+				case ';':
+					// Modifier code to follow
+					// This only supports Ctrl-left and Ctrl-right for now
+					x, _ := strconv.ParseInt(string(num), 10, 32)
+					if x != 1 {
+						// Can't be left or right
+						rv := s.pending[0]
+						s.pending = s.pending[1:]
+						return rv, nil
+					}
+					num = num[:0]
+					for {
+						code, err = s.nextPending(timeout)
+						if err != nil {
+							if err == timedOut {
+								rv := s.pending[0]
+								s.pending = s.pending[1:]
+								return rv, nil
+							}
+							return nil, err
+						}
+						switch code {
+						case '0', '1', '2', '3', '4', '5', '6', '7', '8', '9':
+							num = append(num, code)
+						case 'C', 'D':
+							// right, left
+							mod, _ := strconv.ParseInt(string(num), 10, 32)
+							if mod != 5 {
+								// Not bare Ctrl
+								rv := s.pending[0]
+								s.pending = s.pending[1:]
+								return rv, nil
+							}
+							s.pending = s.pending[:0] // escape code complete
+							if code == 'C' {
+								return wordRight, nil
+							}
+							return wordLeft, nil
+						default:
+							// Not left or right
+							rv := s.pending[0]
+							s.pending = s.pending[1:]
+							return rv, nil
+						}
+					}
 				case '~':
 					s.pending = s.pending[:0] // escape code complete
 					x, _ := strconv.ParseInt(string(num), 10, 32)
