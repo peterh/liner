@@ -10,6 +10,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"unicode"
 	"unicode/utf8"
 )
 
@@ -402,9 +403,31 @@ mainLoop:
 				} else {
 					fmt.Print(beep)
 				}
+			case wordLeft:
+				if pos > 0 {
+					for {
+						pos--
+						if pos == 0 || unicode.IsSpace(line[pos-1]) {
+							break
+						}
+					}
+				} else {
+					fmt.Print(beep)
+				}
 			case right:
 				if pos < len(line) {
 					pos++
+				} else {
+					fmt.Print(beep)
+				}
+			case wordRight:
+				if pos < len(line) {
+					for {
+						pos++
+						if pos == len(line) || unicode.IsSpace(line[pos]) {
+							break
+						}
+					}
 				} else {
 					fmt.Print(beep)
 				}
