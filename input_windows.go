@@ -171,8 +171,18 @@ func (s *State) readNext() (interface{}, error) {
 				s.key = home
 			case vk_left:
 				s.key = left
+				if ke.ControlKeyState&(leftCtrlPressed|rightCtrlPressed) != 0 {
+					if ke.ControlKeyState&modKeys == ke.ControlKeyState&(leftCtrlPressed|rightCtrlPressed) {
+						s.key = wordLeft
+					}
+				}
 			case vk_right:
 				s.key = right
+				if ke.ControlKeyState&(leftCtrlPressed|rightCtrlPressed) != 0 {
+					if ke.ControlKeyState&modKeys == ke.ControlKeyState&(leftCtrlPressed|rightCtrlPressed) {
+						s.key = wordRight
+					}
+				}
 			case vk_up:
 				s.key = up
 			case vk_down:
