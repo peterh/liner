@@ -138,6 +138,7 @@ const (
 	ctrlP = 16
 	ctrlT = 20
 	ctrlU = 21
+	ctrlW = 23
 	esc   = 27
 	bs    = 127
 )
@@ -373,10 +374,32 @@ mainLoop:
 				line = line[:0]
 				pos = 0
 				s.refresh(p, string(line), pos)
+			case ctrlW: // Erase word
+				if pos == 0 {
+					fmt.Print(beep)
+					break
+				}
+				// Remove whitespace to the left
+				for {
+					if pos == 0 || !unicode.IsSpace(line[pos-1]) {
+						break
+					}
+					line = append(line[:pos-1], line[pos:]...)
+					pos--
+				}
+				// Remove non-whitespace to the left
+				for {
+					if pos == 0 || unicode.IsSpace(line[pos-1]) {
+						break
+					}
+					line = append(line[:pos-1], line[pos:]...)
+					pos--
+				}
+				s.refresh(p, string(line), pos)
 			// Catch unhandled control codes (anything <= 31)
 			case 0, 3, 7, 9, 15:
 				fallthrough
-			case 17, 18, 19, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31:
+			case 17, 18, 19, 22, 24, 25, 26, 27, 28, 29, 30, 31:
 				fmt.Print(beep)
 			default:
 				if pos == len(line) && len(p)+len(line) < s.columns {
