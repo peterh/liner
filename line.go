@@ -477,6 +477,10 @@ mainLoop:
 				} else {
 					fmt.Print(beep)
 				}
+			case home: // Start of line
+				pos = 0
+			case end: // End of line
+				pos = len(line)
 			}
 			s.refresh(p, string(line), pos)
 		}
