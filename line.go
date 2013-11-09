@@ -370,8 +370,8 @@ mainLoop:
 					pos--
 					s.refresh(p, string(line), pos)
 				}
-			case ctrlU: // Erase entire line
-				line = line[:0]
+			case ctrlU: // Erase line before cursor
+				line = line[pos:]
 				pos = 0
 				s.refresh(p, string(line), pos)
 			case ctrlW: // Erase word
