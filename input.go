@@ -70,7 +70,7 @@ func NewLiner() *State {
 	return &s
 }
 
-var timedOut = errors.New("timeout")
+var errTimedOut = errors.New("timeout")
 
 func (s *State) nextPending(timeout <-chan time.Time) (rune, error) {
 	select {
@@ -83,7 +83,7 @@ func (s *State) nextPending(timeout <-chan time.Time) (rune, error) {
 	case <-timeout:
 		rv := s.pending[0]
 		s.pending = s.pending[1:]
-		return rv, timedOut
+		return rv, errTimedOut
 	}
 	// not reached
 	return 0, nil
@@ -116,7 +116,7 @@ func (s *State) readNext() (interface{}, error) {
 	timeout := time.After(50 * time.Millisecond)
 	flag, err := s.nextPending(timeout)
 	if err != nil {
-		if err == timedOut {
+		if err == errTimedOut {
 			return flag, nil
 		}
 		return unknown, err
@@ -126,7 +126,7 @@ func (s *State) readNext() (interface{}, error) {
 	case '[':
 		code, err := s.nextPending(timeout)
 		if err != nil {
-			if err == timedOut {
+			if err == errTimedOut {
 				return code, nil
 			}
 			return unknown, err
@@ -152,7 +152,7 @@ func (s *State) readNext() (interface{}, error) {
 			for {
 				code, err := s.nextPending(timeout)
 				if err != nil {
-					if err == timedOut {
+					if err == errTimedOut {
 						return code, nil
 					}
 					return nil, err
@@ -174,7 +174,7 @@ func (s *State) readNext() (interface{}, error) {
 					for {
 						code, err = s.nextPending(timeout)
 						if err != nil {
-							if err == timedOut {
+							if err == errTimedOut {
 								rv := s.pending[0]
 								s.pending = s.pending[1:]
 								return rv, nil
@@ -248,7 +248,7 @@ func (s *State) readNext() (interface{}, error) {
 	case 'O':
 		code, err := s.nextPending(timeout)
 		if err != nil {
-			if err == timedOut {
+			if err == errTimedOut {
 				return code, nil
 			}
 			return nil, err
