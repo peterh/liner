@@ -18,6 +18,8 @@ var (
 	procFillConsoleOutputCharacter = kernel32.NewProc("FillConsoleOutputCharacterW")
 )
 
+// These names are from the Win32 api, so they use underscores (contrary to
+// what golint suggests)
 const (
 	std_input_handle  = uint32(-10 & 0xFFFFFFFF)
 	std_output_handle = uint32(-11 & 0xFFFFFFFF)
@@ -68,6 +70,8 @@ func NewLiner() *State {
 	return &s
 }
 
+// These names are from the Win32 api, so they use underscores (contrary to
+// what golint suggests)
 const (
 	focus_event              = 0x0010
 	key_event                = 0x0001
@@ -91,6 +95,8 @@ type key_event_record struct {
 	ControlKeyState uint32
 }
 
+// These names are from the Win32 api, so they use underscores (contrary to
+// what golint suggests)
 const (
 	vk_tab    = 0x09
 	vk_prior  = 0x21
