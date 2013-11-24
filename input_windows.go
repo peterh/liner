@@ -232,7 +232,7 @@ func (s *State) readNext() (interface{}, error) {
 }
 
 func (s *State) promptUnsupported(p string) (string, error) {
-	return "", errors.New("Internal Error: Always supported on Windows")
+	return "", errors.New("internal error: always supported on Windows")
 }
 
 func (s *State) Close() error {
