@@ -21,6 +21,7 @@ type nexter struct {
 	err error
 }
 
+// State represents an open terminal
 type State struct {
 	commonState
 	r        *bufio.Reader
