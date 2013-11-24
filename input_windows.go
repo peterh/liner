@@ -24,6 +24,7 @@ const (
 	std_error_handle  = uint32(-12 & 0xFFFFFFFF)
 )
 
+// State represents an open terminal
 type State struct {
 	commonState
 	handle   syscall.Handle
@@ -43,6 +44,8 @@ const (
 	enableWindowInput    = 0x8
 )
 
+// NewLiner initializes a new *State, and sets the terminal into raw mode. To
+// restore the terminal to its previous state, call State.Close().
 func NewLiner() *State {
 	var s State
 	hIn, _, _ := procGetStdHandle.Call(uintptr(std_input_handle))
@@ -235,6 +238,7 @@ func (s *State) promptUnsupported(p string) (string, error) {
 	return "", errors.New("internal error: always supported on Windows")
 }
 
+// Close returns the terminal to its previous mode
 func (s *State) Close() error {
 	procSetConsoleMode.Call(uintptr(s.handle), uintptr(s.origMode))
 	return nil
