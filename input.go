@@ -26,14 +26,17 @@ type State struct {
 	r        *bufio.Reader
 	origMode termios
 	next     <-chan nexter
-	winch    <-chan os.Signal
+	winch    chan os.Signal
 	pending  []rune
 }
 
 // NewLiner initializes a new *State, and sets the terminal into raw mode. To
 // restore the terminal to its previous state, call State.Close().
-// NewLiner handles SIGWINCH, so it will leak a channel every time you call
-// it. Therefore, it is recommened that NewLiner only be called once.
+//
+// Note if you are still using Go 1.0: NewLiner handles SIGWINCH, so it will
+// leak a channel every time you call it. Therefore, it is recommened that you
+// upgrade to a newer release of Go, or ensure that NewLiner is only called
+// once.
 func NewLiner() *State {
 	bad := map[string]bool{"": true, "dumb": true, "cons25": true}
 	var s State
@@ -287,6 +290,7 @@ func (s *State) promptUnsupported(p string) (string, error) {
 
 // Close returns the terminal to its previous mode
 func (s *State) Close() error {
+	stopSignal(s.winch)
 	if s.supported {
 		syscall.Syscall(syscall.SYS_IOCTL, uintptr(syscall.Stdin), setTermios, uintptr(unsafe.Pointer(&s.origMode)))
 	}
