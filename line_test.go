@@ -79,4 +79,12 @@ dingle`
 	if num != 5 {
 		t.Fatal("Wrong number of history entries read the 2nd time")
 	}
+
+	num, err = s.ReadHistory(strings.NewReader(input + "\n\xff"))
+	if err == nil {
+		t.Fatal("Unexpected success reading corrupted history", err)
+	}
+	if num != 5 {
+		t.Fatal("Wrong number of history entries read the 3rd time")
+	}
 }

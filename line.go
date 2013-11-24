@@ -7,7 +7,6 @@ package liner
 
 import (
 	"bufio"
-	"errors"
 	"fmt"
 	"io"
 	"unicode"
@@ -70,10 +69,10 @@ func (s *State) ReadHistory(r io.Reader) (num int, err error) {
 			return num, err
 		}
 		if part {
-			return num, errors.New("Line too long")
+			return num, fmt.Errorf("line %d is too long", num+1)
 		}
 		if !utf8.Valid(line) {
-			return num, errors.New("Invalid string")
+			return num, fmt.Errorf("invalid string at line %d", num+1)
 		}
 		num++
 		s.history = append(s.history, string(line))
