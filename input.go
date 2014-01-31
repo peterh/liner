@@ -42,9 +42,9 @@ func NewLiner() *State {
 	bad := map[string]bool{"": true, "dumb": true, "cons25": true}
 	var s State
 	s.r = bufio.NewReader(os.Stdin)
-	s.supported = !bad[strings.ToLower(os.Getenv("TERM"))]
 
-	if s.supported {
+	s.terminalSupported = !bad[strings.ToLower(os.Getenv("TERM"))]
+	if s.terminalSupported {
 		syscall.Syscall(syscall.SYS_IOCTL, uintptr(syscall.Stdin), getTermios, uintptr(unsafe.Pointer(&s.origMode)))
 		mode := s.origMode
 		mode.Iflag &^= icrnl | inpck | istrip | ixon
@@ -66,6 +66,9 @@ func NewLiner() *State {
 		}()
 		s.next = next
 	}
+
+	s.getColumns()
+	s.terminalOutput = s.columns > 0
 
 	return &s
 }
@@ -292,7 +295,7 @@ func (s *State) promptUnsupported(p string) (string, error) {
 // Close returns the terminal to its previous mode
 func (s *State) Close() error {
 	stopSignal(s.winch)
-	if s.supported {
+	if s.terminalSupported {
 		syscall.Syscall(syscall.SYS_IOCTL, uintptr(syscall.Stdin), setTermios, uintptr(unsafe.Pointer(&s.origMode)))
 	}
 	return nil

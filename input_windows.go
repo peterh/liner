@@ -55,6 +55,7 @@ func NewLiner() *State {
 	hOut, _, _ := procGetStdHandle.Call(uintptr(std_output_handle))
 	s.hOut = syscall.Handle(hOut)
 
+	s.terminalSupported = true
 	ok, _, _ := procGetConsoleMode.Call(hIn, uintptr(unsafe.Pointer(&s.origMode)))
 	if ok != 0 {
 		mode := s.origMode
@@ -66,7 +67,9 @@ func NewLiner() *State {
 		procSetConsoleMode.Call(hIn, uintptr(mode))
 	}
 
-	s.supported = true
+	s.getColumns()
+	s.terminalOutput = s.columns > 0
+
 	return &s
 }
 
