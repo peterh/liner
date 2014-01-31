@@ -7,17 +7,21 @@ package liner
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
 	"io"
 	"unicode/utf8"
 )
 
 type commonState struct {
-	history   []string
-	supported bool
-	completer Completer
-	columns   int
+	terminalSupported bool
+	terminalOutput    bool
+	history           []string
+	completer         Completer
+	columns           int
 }
+
+var errNotTerminalOutput = errors.New("standard output is not a terminal")
 
 // HistoryLimit is the maximum number of entries saved in the scrollback history.
 const HistoryLimit = 1000

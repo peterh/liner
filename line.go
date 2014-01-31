@@ -169,7 +169,10 @@ func (s *State) tabComplete(p string, line []rune) ([]rune, interface{}, error) 
 // Prompt displays p, and then waits for user input. Prompt allows line editing
 // if the terminal supports it.
 func (s *State) Prompt(p string) (string, error) {
-	if !s.supported {
+	if !s.terminalOutput {
+		return "", errNotTerminalOutput
+	}
+	if !s.terminalSupported {
 		return s.promptUnsupported(p)
 	}
 
