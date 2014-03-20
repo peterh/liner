@@ -176,6 +176,7 @@ func (s *State) Prompt(p string) (string, error) {
 		return s.promptUnsupported(p)
 	}
 
+	s.startPrompt()
 	s.getColumns()
 
 	fmt.Print(p)

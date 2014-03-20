@@ -55,16 +55,6 @@ func NewLiner() *State {
 		winch := make(chan os.Signal, 1)
 		signal.Notify(winch, syscall.SIGWINCH)
 		s.winch = winch
-
-		next := make(chan nexter)
-		go func() {
-			for {
-				var n nexter
-				n.r, _, n.err = s.r.ReadRune()
-				next <- n
-			}
-		}()
-		s.next = next
 	}
 
 	s.getColumns()
@@ -75,9 +65,30 @@ func NewLiner() *State {
 
 var errTimedOut = errors.New("timeout")
 
+func (s *State) startPrompt() {
+	next := make(chan nexter)
+	go func() {
+		for {
+			var n nexter
+			n.r, _, n.err = s.r.ReadRune()
+			next <- n
+			// Shut down nexter loop when an end condition has been reached
+			// with the exception that this does not detect ^D on an empty line
+			if n.err != nil || n.r == '\n' || n.r == '\r' {
+				close(next)
+				return
+			}
+		}
+	}()
+	s.next = next
+}
+
 func (s *State) nextPending(timeout <-chan time.Time) (rune, error) {
 	select {
-	case thing := <-s.next:
+	case thing, ok := <-s.next:
+		if !ok {
+			return 0, errors.New("liner: internal error")
+		}
 		if thing.err != nil {
 			return 0, thing.err
 		}
@@ -100,7 +111,10 @@ func (s *State) readNext() (interface{}, error) {
 	}
 	var r rune
 	select {
-	case thing := <-s.next:
+	case thing, ok := <-s.next:
+		if !ok {
+			return 0, errors.New("liner: internal error")
+		}
 		if thing.err != nil {
 			return nil, thing.err
 		}

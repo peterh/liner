@@ -244,11 +244,14 @@ func (s *State) readNext() (interface{}, error) {
 }
 
 func (s *State) promptUnsupported(p string) (string, error) {
-	return "", errors.New("internal error: always supported on Windows")
+	return "", errors.New("liner: internal error: always supported on Windows")
 }
 
 // Close returns the terminal to its previous mode
 func (s *State) Close() error {
 	procSetConsoleMode.Call(uintptr(s.handle), uintptr(s.origMode))
 	return nil
+}
+
+func (s *State) startPrompt() {
 }
