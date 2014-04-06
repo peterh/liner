@@ -130,6 +130,9 @@ func (s *State) tabComplete(p string, line []rune) ([]rune, interface{}, error) 
 	if len(list) <= 0 {
 		return line, rune(tab), nil
 	}
+	if len(list) == 1 {
+		return []rune(list[0]), rune(tab), nil
+	}
 	listEntry := 0
 	for {
 		pick := list[listEntry]
@@ -171,9 +174,6 @@ func (s *State) tabComplete(p string, line []rune) ([]rune, interface{}, error) 
 func (s *State) Prompt(p string) (string, error) {
 	if !s.terminalOutput {
 		return "", errNotTerminalOutput
-	}
-	if !s.terminalSupported {
-		return s.promptUnsupported(p)
 	}
 
 	s.startPrompt()

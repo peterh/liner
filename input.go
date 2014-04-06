@@ -3,16 +3,15 @@
 package liner
 
 import (
-	"bufio"
-	"bytes"
 	"errors"
-	"fmt"
+	"io"
 	"os"
 	"os/signal"
 	"strconv"
 	"strings"
 	"syscall"
 	"time"
+	"unicode/utf8"
 	"unsafe"
 )
 
@@ -24,38 +23,105 @@ type nexter struct {
 // State represents an open terminal
 type State struct {
 	commonState
-	r        *bufio.Reader
+	r        *readRune
 	origMode termios
 	next     <-chan nexter
 	winch    chan os.Signal
 	pending  []rune
 }
 
-// NewLiner initializes a new *State, and sets the terminal into raw mode. To
-// restore the terminal to its previous state, call State.Close().
+// The readRune structure and methods copied from src/pkg/fmt/scan.go:
+// readRune is a structure to enable reading UTF-8 encoded code points
+// from an io.Reader.  It is used if the Reader given to the scanner does
+// not already implement io.RuneReader.
+type readRune struct {
+	reader  io.Reader
+  	buf	[utf8.UTFMax]byte // used only inside ReadRune
+	pending int               // number of bytes in pendBuf; only >0 for bad UTF-8
+	pendBuf [utf8.UTFMax]byte // bytes left over
+}
+
+// readByte returns the next byte from the input, which may be
+// left over from a previous read if the UTF-8 was ill-formed.
+func (r *readRune) readByte() (b byte, err error) {
+	if r.pending > 0 {
+		b = r.pendBuf[0]
+		copy(r.pendBuf[0:], r.pendBuf[1:])
+		r.pending--
+		return
+	}
+	n, err := io.ReadFull(r.reader, r.pendBuf[0:1])
+	if n != 1 {
+		return 0, err
+	}
+	return r.pendBuf[0], err
+}
+
+// unread saves the bytes for the next read.
+func (r *readRune) unread(buf []byte) {
+	copy(r.pendBuf[r.pending:], buf)
+	r.pending += len(buf)
+}
+
+// ReadRune returns the next UTF-8 encoded code point from the
+// io.Reader inside r.
+func (r *readRune) ReadRune() (rr rune, size int, err error) {
+	r.buf[0], err = r.readByte()
+	if err != nil {
+		return 0, 0, err
+	}
+	if r.buf[0] < utf8.RuneSelf { // fast check for common ASCII case
+		rr = rune(r.buf[0])
+		return
+	}
+	var n int
+	for n = 1; !utf8.FullRune(r.buf[0:n]); n++ {
+		r.buf[n], err = r.readByte()
+		if err != nil {
+			if err == io.EOF {
+				err = nil
+				break
+			}
+			return
+		}
+	}
+	rr, size = utf8.DecodeRune(r.buf[0:n])
+	if size < n { // an error
+		r.unread(r.buf[size:n])
+	}
+	return
+}
+
+// NewLiner initializes a new *State, and saves the previous terminal mode.
+// To restore the terminal to its previous state, call State.Close().
 //
 // Note if you are still using Go 1.0: NewLiner handles SIGWINCH, so it will
 // leak a channel every time you call it. Therefore, it is recommened that you
 // upgrade to a newer release of Go, or ensure that NewLiner is only called
 // once.
 func NewLiner() *State {
-	bad := map[string]bool{"": true, "dumb": true, "cons25": true}
 	var s State
-	s.r = bufio.NewReader(os.Stdin)
 
-	s.terminalSupported = !bad[strings.ToLower(os.Getenv("TERM"))]
-	if s.terminalSupported {
-		syscall.Syscall(syscall.SYS_IOCTL, uintptr(syscall.Stdin), getTermios, uintptr(unsafe.Pointer(&s.origMode)))
-		mode := s.origMode
-		mode.Iflag &^= icrnl | inpck | istrip | ixon
-		mode.Cflag |= cs8
-		mode.Lflag &^= syscall.ECHO | icanon | iexten
-		syscall.Syscall(syscall.SYS_IOCTL, uintptr(syscall.Stdin), setTermios, uintptr(unsafe.Pointer(&mode)))
+	s.r = &readRune{reader: os.Stdin}
 
-		winch := make(chan os.Signal, 1)
-		signal.Notify(winch, syscall.SIGWINCH)
-		s.winch = winch
+	term := os.Getenv("TERM")
+	bad := map[string]bool{"": true, "dumb": true, "cons25": true}
+	if bad[strings.ToLower(term)] {
+		panic("liner: unsupported terminal type: " + term)
 	}
+
+	syscall.Syscall(syscall.SYS_IOCTL, uintptr(syscall.Stdin),
+			getTermios, uintptr(unsafe.Pointer(&s.origMode)))
+
+	mode := s.origMode
+	mode.Iflag &^= icrnl | inpck | istrip | ixon
+	mode.Cflag |= cs8
+	mode.Lflag &^= syscall.ECHO | icanon | iexten
+	syscall.Syscall(syscall.SYS_IOCTL, uintptr(syscall.Stdin),
+			setTermios, uintptr(unsafe.Pointer(&mode)))
+
+	s.winch = make(chan os.Signal, 1)
+	signal.Notify(s.winch, syscall.SIGWINCH)
 
 	s.getColumns()
 	s.terminalOutput = s.columns > 0
@@ -297,20 +363,11 @@ func (s *State) readNext() (interface{}, error) {
 	return r, nil
 }
 
-func (s *State) promptUnsupported(p string) (string, error) {
-	fmt.Print(p)
-	linebuf, _, err := s.r.ReadLine()
-	if err != nil {
-		return "", err
-	}
-	return string(bytes.TrimSpace(linebuf)), nil
-}
-
 // Close returns the terminal to its previous mode
 func (s *State) Close() error {
 	stopSignal(s.winch)
-	if s.terminalSupported {
-		syscall.Syscall(syscall.SYS_IOCTL, uintptr(syscall.Stdin), setTermios, uintptr(unsafe.Pointer(&s.origMode)))
-	}
+	syscall.Syscall(syscall.SYS_IOCTL, uintptr(syscall.Stdin),
+			setTermios, uintptr(unsafe.Pointer(&s.origMode)))
 	return nil
 }
+

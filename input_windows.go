@@ -55,7 +55,6 @@ func NewLiner() *State {
 	hOut, _, _ := procGetStdHandle.Call(uintptr(std_output_handle))
 	s.hOut = syscall.Handle(hOut)
 
-	s.terminalSupported = true
 	ok, _, _ := procGetConsoleMode.Call(hIn, uintptr(unsafe.Pointer(&s.origMode)))
 	if ok != 0 {
 		mode := s.origMode
@@ -241,10 +240,6 @@ func (s *State) readNext() (interface{}, error) {
 		return s.key, nil
 	}
 	return unknown, nil
-}
-
-func (s *State) promptUnsupported(p string) (string, error) {
-	return "", errors.New("liner: internal error: always supported on Windows")
 }
 
 // Close returns the terminal to its previous mode
