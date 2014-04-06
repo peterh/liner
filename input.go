@@ -24,6 +24,7 @@ type nexter struct {
 type State struct {
 	commonState
 	r        *readRune
+	editMode termios
 	origMode termios
 	next     <-chan nexter
 	winch    chan os.Signal
@@ -113,12 +114,12 @@ func NewLiner() *State {
 	syscall.Syscall(syscall.SYS_IOCTL, uintptr(syscall.Stdin),
 			getTermios, uintptr(unsafe.Pointer(&s.origMode)))
 
-	mode := s.origMode
-	mode.Iflag &^= icrnl | inpck | istrip | ixon
-	mode.Cflag |= cs8
-	mode.Lflag &^= syscall.ECHO | icanon | iexten
-	syscall.Syscall(syscall.SYS_IOCTL, uintptr(syscall.Stdin),
-			setTermios, uintptr(unsafe.Pointer(&mode)))
+	s.editMode = s.origMode
+	s.editMode.Iflag &^= icrnl | inpck | istrip | ixon
+	s.editMode.Cflag |= cs8
+	s.editMode.Lflag &^= syscall.ECHO | icanon | iexten
+
+	s.Set()
 
 	s.winch = make(chan os.Signal, 1)
 	signal.Notify(s.winch, syscall.SIGWINCH)
@@ -363,11 +364,32 @@ func (s *State) readNext() (interface{}, error) {
 	return r, nil
 }
 
-// Close returns the terminal to its previous mode
 func (s *State) Close() error {
-	stopSignal(s.winch)
+	if s != nil {
+		stopSignal(s.winch)
+		s.Reset()
+	}
+
+	return nil
+}
+
+// Reset returns the terminal to its original mode
+func (s *State) Reset() {
+	if s == nil {
+		return
+	}
+
 	syscall.Syscall(syscall.SYS_IOCTL, uintptr(syscall.Stdin),
 			setTermios, uintptr(unsafe.Pointer(&s.origMode)))
-	return nil
+}
+
+// Set puts the terminal into the mode required for line editing.
+func (s *State) Set() {
+	if s == nil {
+		return
+	}
+
+	syscall.Syscall(syscall.SYS_IOCTL, uintptr(syscall.Stdin),
+			setTermios, uintptr(unsafe.Pointer(&s.editMode)))
 }
 

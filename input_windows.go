@@ -57,13 +57,13 @@ func NewLiner() *State {
 
 	ok, _, _ := procGetConsoleMode.Call(hIn, uintptr(unsafe.Pointer(&s.origMode)))
 	if ok != 0 {
-		mode := s.origMode
-		mode &^= enableEchoInput
-		mode &^= enableInsertMode
-		mode &^= enableLineInput
-		mode &^= enableMouseInput
-		mode |= enableWindowInput
-		procSetConsoleMode.Call(hIn, uintptr(mode))
+		s.editMode := s.origMode
+		s.editMode &^= enableEchoInput
+		s.editMode &^= enableInsertMode
+		s.editMode &^= enableLineInput
+		s.editMode &^= enableMouseInput
+		s.editMode |= enableWindowInput
+		s.Set()
 	}
 
 	s.getColumns()
@@ -242,10 +242,27 @@ func (s *State) readNext() (interface{}, error) {
 	return unknown, nil
 }
 
-// Close returns the terminal to its previous mode
 func (s *State) Close() error {
-	procSetConsoleMode.Call(uintptr(s.handle), uintptr(s.origMode))
+	s.Reset()
 	return nil
+}
+
+// Reset returns the terminal to its original mode.
+func (s *State) Reset() {
+        if s == nil {
+                return
+        }
+
+	procSetConsoleMode.Call(uintptr(s.handle), uintptr(s.origMode))
+}
+
+// Set puts the terminal into the mode required for line editing.
+func (s *State) Set() {
+        if s == nil {
+                return
+        }
+
+	procSetConsoleMode.Call(uintptr(s.handle), uintptr(s.editMode))
 }
 
 func (s *State) startPrompt() {
