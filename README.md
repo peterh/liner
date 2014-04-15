@@ -16,7 +16,6 @@ Getting started
 package main
 
 import (
-	"bufio"
 	"log"
 	"os"
 	"strings"
@@ -43,7 +42,7 @@ func main() {
 	})
 
 	if f, err := os.Open(history_fn); err == nil {
-		line.ReadHistory(bufio.NewReader(f))
+		line.ReadHistory(f)
 		f.Close()
 	}
 
@@ -57,7 +56,7 @@ func main() {
 	if f, err := os.Create(history_fn); err != nil {
 		log.Print("Error writing history file: ", err)
 	} else {
-		line.WriteHistory(bufio.NewWriter(f))
+		line.WriteHistory(f)
 		f.Close()
 	}
 }
