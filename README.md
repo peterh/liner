@@ -9,4 +9,58 @@ Windows.
 Liner is released under the X11 license (which is similar to the new BSD
 license).
 
-For documentation, see http://go.pkgdoc.org/github.com/peterh/liner
+Getting started
+-----------------
+
+```go
+package main
+
+import (
+	"bufio"
+	"log"
+	"os"
+	"strings"
+
+	"github.com/peterh/liner"
+)
+
+var (
+	history_fn = "/tmp/.liner_history"
+	names      = []string{"john", "james", "mary", "nancy"}
+)
+
+func main() {
+	line := liner.NewLiner()
+	defer line.Close()
+
+	line.SetCompleter(func(line string) (c []string) {
+		for _, n := range names {
+			if strings.HasPrefix(n, strings.ToLower(line)) {
+				c = append(c, n)
+			}
+		}
+		return
+	})
+
+	if f, err := os.Open(history_fn); err == nil {
+		line.ReadHistory(bufio.NewReader(f))
+		f.Close()
+	}
+
+	if name, err := line.Prompt("What is your name? "); err != nil {
+		log.Print("Error reading line: ", err)
+	} else {
+		log.Print("Got: ", name)
+		line.AppendHistory(name)
+	}
+
+	if f, err := os.Create(history_fn); err != nil {
+		log.Print("Error writing history file: ", err)
+	} else {
+		line.WriteHistory(bufio.NewWriter(f))
+		f.Close()
+	}
+}
+```
+
+For documentation, see http://godoc.org/github.com/peterh/liner
