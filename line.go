@@ -5,6 +5,7 @@ package liner
 import (
 	"fmt"
 	"io"
+	"strings"
 	"unicode"
 	"unicode/utf8"
 )
@@ -126,14 +127,24 @@ func (s *State) tabComplete(p string, line []rune) ([]rune, interface{}, error) 
 	if s.completer == nil {
 		return line, rune(tab), nil
 	}
-	list := s.completer(string(line))
+	lastSpace := strings.LastIndex(string(line), " ")
+	if lastSpace == -1 {
+		lastSpace = 0
+	} else {
+		lastSpace += 1
+	}
+	// no autocomplete for zero runes
+	if len(line[lastSpace:]) == 0 {
+		return line, rune(tab), nil
+	}
+	list := s.completer(string(line[lastSpace:]))
 	if len(list) <= 0 {
 		return line, rune(tab), nil
 	}
 	listEntry := 0
 	for {
 		pick := list[listEntry]
-		s.refresh(p, pick, len(pick))
+		s.refresh(p, string(line[:lastSpace])+pick, lastSpace+len(pick))
 
 		next, err := s.readNext()
 		if err != nil {
@@ -160,7 +171,7 @@ func (s *State) tabComplete(p string, line []rune) ([]rune, interface{}, error) 
 			}
 			continue
 		}
-		return []rune(pick), next, nil
+		return []rune(string(line[:lastSpace]) + pick), next, nil
 	}
 	// Not reached
 	return line, rune(tab), nil
