@@ -144,7 +144,7 @@ func (s *State) tabComplete(p string, line []rune) ([]rune, interface{}, error) 
 				if listEntry < len(list)-1 {
 					listEntry++
 				} else {
-					fmt.Print(beep)
+					listEntry = 0
 				}
 				continue
 			}
