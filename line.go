@@ -42,25 +42,27 @@ const (
 )
 
 const (
-	ctrlA = 1
-	ctrlB = 2
-	ctrlC = 3
-	ctrlD = 4
-	ctrlE = 5
-	ctrlF = 6
-	ctrlH = 8
-	tab   = 9
-	lf    = 10
-	ctrlK = 11
-	ctrlL = 12
-	cr    = 13
-	ctrlN = 14
-	ctrlP = 16
-	ctrlT = 20
-	ctrlU = 21
-	ctrlW = 23
-	esc   = 27
-	bs    = 127
+	ctrlA    = 1
+	ctrlB    = 2
+	ctrlC    = 3
+	ctrlD    = 4
+	ctrlE    = 5
+	ctrlF    = 6
+	ctrlH    = 8
+	tab      = 9
+	lf       = 10
+	ctrlK    = 11
+	ctrlL    = 12
+	cr       = 13
+	ctrlN    = 14
+	ctrlP    = 16
+	ctrlT    = 20
+	ctrlU    = 21
+	ctrlW    = 23
+	esc      = 27
+	bs       = 127
+	homeRune = 72
+	endRune  = 70
 )
 
 const (
@@ -209,10 +211,16 @@ mainLoop:
 			case cr, lf:
 				fmt.Println()
 				break mainLoop
-			case ctrlA: // Start of line
+			case ctrlA, homeRune: // Start of line
+				if v == homeRune { // delete [ rune
+					line = append(line[:pos-1], line[pos:]...)
+				}
 				pos = 0
 				s.refresh(p, string(line), pos)
-			case ctrlE: // End of line
+			case ctrlE, endRune: // End of line
+				if v == endRune { // delete [ rune
+					line = append(line[:pos-1], line[pos:]...)
+				}
 				pos = len(line)
 				s.refresh(p, string(line), pos)
 			case ctrlB: // left
