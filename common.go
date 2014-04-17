@@ -10,6 +10,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"strings"
 	"unicode/utf8"
 )
 
@@ -79,6 +80,16 @@ func (s *State) AppendHistory(item string) {
 	if len(s.history) > HistoryLimit {
 		s.history = s.history[1:]
 	}
+}
+
+// Returns the history lines starting with prefix
+func (s *State) GetHistoryByPrefix(prefix string) (ph []string) {
+	for _, h := range s.history {
+		if strings.HasPrefix(h, prefix) {
+			ph = append(ph, h)
+		}
+	}
+	return
 }
 
 // Completer takes the currently edited line and returns a list
