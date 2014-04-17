@@ -182,11 +182,13 @@ func (s *State) Prompt(p string) (string, error) {
 	fmt.Print(p)
 	line := make([]rune, 0)
 	pos := 0
-	historyPos := len(s.history)
 	var historyEnd string
-
+	prefixHistory := s.GetHistoryByPrefix(string(line))
+	historyPos := len(prefixHistory)
+	var historyAction bool // used to mark history related actions
 mainLoop:
 	for {
+		historyAction = false
 		next, err := s.readNext()
 		if err != nil {
 			return "", err
@@ -248,24 +250,26 @@ mainLoop:
 					s.refresh(p, string(line), pos)
 				}
 			case ctrlP: // up
+				historyAction = true
 				if historyPos > 0 {
-					if historyPos == len(s.history) {
+					if historyPos == len(prefixHistory) {
 						historyEnd = string(line)
 					}
 					historyPos--
-					line = []rune(s.history[historyPos])
+					line = []rune(prefixHistory[historyPos])
 					pos = len(line)
 					s.refresh(p, string(line), pos)
 				} else {
 					fmt.Print(beep)
 				}
 			case ctrlN: // down
-				if historyPos < len(s.history) {
+				historyAction = true
+				if historyPos < len(prefixHistory) {
 					historyPos++
-					if historyPos == len(s.history) {
+					if historyPos == len(prefixHistory) {
 						line = []rune(historyEnd)
 					} else {
-						line = []rune(s.history[historyPos])
+						line = []rune(prefixHistory[historyPos])
 					}
 					pos = len(line)
 					s.refresh(p, string(line), pos)
@@ -379,23 +383,25 @@ mainLoop:
 					fmt.Print(beep)
 				}
 			case up:
+				historyAction = true
 				if historyPos > 0 {
-					if historyPos == len(s.history) {
+					if historyPos == len(prefixHistory) {
 						historyEnd = string(line)
 					}
 					historyPos--
-					line = []rune(s.history[historyPos])
+					line = []rune(prefixHistory[historyPos])
 					pos = len(line)
 				} else {
 					fmt.Print(beep)
 				}
 			case down:
-				if historyPos < len(s.history) {
+				historyAction = true
+				if historyPos < len(prefixHistory) {
 					historyPos++
-					if historyPos == len(s.history) {
+					if historyPos == len(prefixHistory) {
 						line = []rune(historyEnd)
 					} else {
-						line = []rune(s.history[historyPos])
+						line = []rune(prefixHistory[historyPos])
 					}
 					pos = len(line)
 				} else {
@@ -407,6 +413,10 @@ mainLoop:
 				pos = len(line)
 			}
 			s.refresh(p, string(line), pos)
+		}
+		if !historyAction {
+			prefixHistory = s.GetHistoryByPrefix(string(line))
+			historyPos = len(prefixHistory)
 		}
 	}
 	return string(line), nil
