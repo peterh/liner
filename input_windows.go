@@ -46,6 +46,10 @@ const (
 	enableWindowInput    = 0x8
 )
 
+func UnsupportedTerminal() bool {
+        return false
+}
+
 // NewLiner initializes a new *State, and sets the terminal into raw mode. To
 // restore the terminal to its previous state, call State.Close().
 func NewLiner() *State {
@@ -63,7 +67,6 @@ func NewLiner() *State {
 		s.editMode &^= enableLineInput
 		s.editMode &^= enableMouseInput
 		s.editMode |= enableWindowInput
-		s.Set()
 	}
 
 	s.getColumns()
@@ -166,8 +169,14 @@ func (s *State) readNext() (interface{}, error) {
 			continue
 		}
 
-		if ke.VirtualKeyCode == vk_tab && ke.ControlKeyState&modKeys == shiftPressed {
-			s.key = shiftTab
+		if ke.VirtualKeyCode == vk_tab {
+			if ke.ControlKeyState&modKeys == shiftPressed {
+				s.key = shiftTab
+			} else {
+				s.key = tab
+			}
+		} else if ke.Char = escKey {
+			s.key = esc
 		} else if ke.Char > 0 {
 			s.key = rune(ke.Char)
 		} else {
@@ -243,12 +252,12 @@ func (s *State) readNext() (interface{}, error) {
 }
 
 func (s *State) Close() error {
-	s.Reset()
+	s.restoreTerminalMode()
 	return nil
 }
 
-// Reset returns the terminal to its original mode.
-func (s *State) Reset() {
+// Return the terminal to its original mode.
+func (s *State) restoreTerminalMode() {
         if s == nil {
                 return
         }
@@ -256,8 +265,8 @@ func (s *State) Reset() {
 	procSetConsoleMode.Call(uintptr(s.handle), uintptr(s.origMode))
 }
 
-// Set puts the terminal into the mode required for line editing.
-func (s *State) Set() {
+// Put the terminal into the mode required for line editing.
+func (s *State) lineEditingMode() {
         if s == nil {
                 return
         }

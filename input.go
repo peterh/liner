@@ -93,6 +93,15 @@ func (r *readRune) ReadRune() (rr rune, size int, err error) {
 	return
 }
 
+func UnsupportedTerminal() bool {
+	term := os.Getenv("TERM")
+	bad := map[string]bool{"": true, "dumb": true, "cons25": true}
+	if bad[strings.ToLower(term)] {
+		return true
+	}
+	return false
+}
+
 // NewLiner initializes a new *State, and saves the previous terminal mode.
 // To restore the terminal to its previous state, call State.Close().
 //
@@ -105,10 +114,8 @@ func NewLiner() *State {
 
 	s.r = &readRune{reader: os.Stdin}
 
-	term := os.Getenv("TERM")
-	bad := map[string]bool{"": true, "dumb": true, "cons25": true}
-	if bad[strings.ToLower(term)] {
-		panic("liner: unsupported terminal type: " + term)
+	if UnsupportedTerminal() {
+		panic("liner: unsupported terminal type")
 	}
 
 	syscall.Syscall(syscall.SYS_IOCTL, uintptr(syscall.Stdin),
@@ -118,8 +125,6 @@ func NewLiner() *State {
 	s.editMode.Iflag &^= icrnl | inpck | istrip | ixon
 	s.editMode.Cflag |= cs8
 	s.editMode.Lflag &^= syscall.ECHO | icanon | iexten
-
-	s.Set()
 
 	s.winch = make(chan os.Signal, 1)
 	signal.Notify(s.winch, syscall.SIGWINCH)
@@ -190,7 +195,10 @@ func (s *State) readNext() (interface{}, error) {
 		s.getColumns()
 		return winch, nil
 	}
-	if r != esc {
+	if r == tabKey {
+		return tab, nil
+	}
+	if r != escKey {
 		return r, nil
 	}
 	s.pending = append(s.pending, r)
@@ -201,7 +209,7 @@ func (s *State) readNext() (interface{}, error) {
 	flag, err := s.nextPending(timeout)
 	if err != nil {
 		if err == errTimedOut {
-			return flag, nil
+			return esc, nil
 		}
 		return unknown, err
 	}
@@ -367,14 +375,14 @@ func (s *State) readNext() (interface{}, error) {
 func (s *State) Close() error {
 	if s != nil {
 		stopSignal(s.winch)
-		s.Reset()
+		s.restoreTerminalMode()
 	}
 
 	return nil
 }
 
-// Reset returns the terminal to its original mode
-func (s *State) Reset() {
+// Return the terminal to its original mode.
+func (s *State) restoreTerminalMode() {
 	if s == nil {
 		return
 	}
@@ -383,8 +391,8 @@ func (s *State) Reset() {
 			setTermios, uintptr(unsafe.Pointer(&s.origMode)))
 }
 
-// Set puts the terminal into the mode required for line editing.
-func (s *State) Set() {
+// Put the terminal into the mode required for line editing.
+func (s *State) lineEditingMode() {
 	if s == nil {
 		return
 	}

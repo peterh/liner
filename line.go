@@ -18,6 +18,7 @@ const (
 	down
 	home
 	end
+	esc
 	insert
 	del
 	pageUp
@@ -35,6 +36,7 @@ const (
 	f11
 	f12
 	shiftTab
+	tab
 	wordLeft
 	wordRight
 	winch
@@ -49,7 +51,7 @@ const (
 	ctrlE = 5
 	ctrlF = 6
 	ctrlH = 8
-	tab   = 9
+	tabKey = 9
 	lf    = 10
 	ctrlK = 11
 	ctrlL = 12
@@ -59,7 +61,7 @@ const (
 	ctrlT = 20
 	ctrlU = 21
 	ctrlW = 23
-	esc   = 27
+	escKey   = 27
 	bs    = 127
 )
 
@@ -124,14 +126,14 @@ func (s *State) refresh(prompt string, buf string, pos int) error {
 
 func (s *State) tabComplete(p string, line []rune) ([]rune, interface{}, error) {
 	if s.completer == nil {
-		return line, rune(tab), nil
+		return line, rune(tabKey), nil
 	}
 	list := s.completer(string(line))
 	if len(list) <= 0 {
-		return line, rune(tab), nil
+		return line, rune(tabKey), nil
 	}
 	if len(list) == 1 {
-		return []rune(list[0]), rune(tab), nil
+		return []rune(list[0]), rune(tabKey), nil
 	}
 	listEntry := 0
 	for {
@@ -140,33 +142,30 @@ func (s *State) tabComplete(p string, line []rune) ([]rune, interface{}, error) 
 
 		next, err := s.readNext()
 		if err != nil {
-			return line, rune(tab), err
+			return line, rune(tabKey), err
 		}
-		if key, ok := next.(rune); ok {
-			if key == tab {
-				if listEntry < len(list)-1 {
-					listEntry++
-				} else {
-					fmt.Print(beep)
+		if action, ok := next.(action); ok {
+			switch action {
+			case tab:
+				if listEntry++; listEntry >= len(list) {
+					listEntry = 0
 				}
 				continue
+
+			case shiftTab:
+				if listEntry--; listEntry < 0 {
+					listEntry = len(list) - 1
+				}
+				continue
+
+			case esc:
+				return line, rune(escKey), nil
 			}
-			if key == esc {
-				return line, rune(esc), nil
-			}
-		}
-		if a, ok := next.(action); ok && a == shiftTab {
-			if listEntry > 0 {
-				listEntry--
-			} else {
-				fmt.Print(beep)
-			}
-			continue
 		}
 		return []rune(pick), next, nil
 	}
 	// Not reached
-	return line, rune(tab), nil
+	return line, rune(tabKey), nil
 }
 
 // Prompt displays p, and then waits for user input. Prompt allows line editing
@@ -175,6 +174,9 @@ func (s *State) Prompt(p string) (string, error) {
 	if !s.terminalOutput {
 		return "", errNotTerminalOutput
 	}
+
+	defer s.restoreTerminalMode()
+	s.lineEditingMode()
 
 	s.startPrompt()
 	s.getColumns()
@@ -193,7 +195,8 @@ mainLoop:
 		}
 
 		if pos == len(line) {
-			if key, ok := next.(rune); ok && key == tab {
+			if action, ok := next.(action); ok &&
+				(action == shiftTab || action == tab) {
 				line, next, err = s.tabComplete(p, line)
 				if err != nil {
 					return "", err
