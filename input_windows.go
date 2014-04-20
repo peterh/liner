@@ -31,6 +31,7 @@ type State struct {
 	commonState
 	handle   syscall.Handle
 	hOut     syscall.Handle
+	editMode uint32
 	origMode uint32
 	key      interface{}
 	repeat   uint16
@@ -46,12 +47,13 @@ const (
 	enableWindowInput    = 0x8
 )
 
-func UnsupportedTerminal() bool {
-        return false
+func SupportedTerminal() bool {
+	return true
 }
 
-// NewLiner initializes a new *State, and sets the terminal into raw mode. To
-// restore the terminal to its previous state, call State.Close().
+// NewLiner initializes a new *State, saves the previous terminal mode and
+// sets the terminal into raw mode. To restore the terminal to its previous
+// state, call State.Close().
 func NewLiner() *State {
 	var s State
 	hIn, _, _ := procGetStdHandle.Call(uintptr(std_input_handle))
@@ -59,14 +61,16 @@ func NewLiner() *State {
 	hOut, _, _ := procGetStdHandle.Call(uintptr(std_output_handle))
 	s.hOut = syscall.Handle(hOut)
 
+	s.terminalSupported = true
 	ok, _, _ := procGetConsoleMode.Call(hIn, uintptr(unsafe.Pointer(&s.origMode)))
 	if ok != 0 {
-		s.editMode := s.origMode
+		s.editMode = s.origMode
 		s.editMode &^= enableEchoInput
 		s.editMode &^= enableInsertMode
 		s.editMode &^= enableLineInput
 		s.editMode &^= enableMouseInput
 		s.editMode |= enableWindowInput
+		s.LineEditingMode()
 	}
 
 	s.getColumns()
@@ -175,7 +179,7 @@ func (s *State) readNext() (interface{}, error) {
 			} else {
 				s.key = tab
 			}
-		} else if ke.Char = escKey {
+		} else if ke.Char == escKey {
 			s.key = esc
 		} else if ke.Char > 0 {
 			s.key = rune(ke.Char)
@@ -251,27 +255,31 @@ func (s *State) readNext() (interface{}, error) {
 	return unknown, nil
 }
 
+func (s *State) promptUnsupported(p string) (string, error) {
+	return "", errors.New("liner: internal error: always supported on Windows")
+}
+
 func (s *State) Close() error {
-	s.restoreTerminalMode()
+	s.OriginalTerminalMode()
 	return nil
 }
 
-// Return the terminal to its original mode.
-func (s *State) restoreTerminalMode() {
-        if s == nil {
-                return
-        }
-
-	procSetConsoleMode.Call(uintptr(s.handle), uintptr(s.origMode))
-}
-
 // Put the terminal into the mode required for line editing.
-func (s *State) lineEditingMode() {
-        if s == nil {
-                return
-        }
+func (s *State) LineEditingMode() {
+	if s == nil {
+		return
+	}
 
 	procSetConsoleMode.Call(uintptr(s.handle), uintptr(s.editMode))
+}
+
+// Return the terminal to its original mode.
+func (s *State) OriginalTerminalMode() {
+	if s == nil {
+		return
+	}
+
+	procSetConsoleMode.Call(uintptr(s.handle), uintptr(s.origMode))
 }
 
 func (s *State) startPrompt() {

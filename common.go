@@ -14,6 +14,7 @@ import (
 )
 
 type commonState struct {
+	terminalSupported bool
 	terminalOutput    bool
 	history           []string
 	completer         Completer

@@ -44,25 +44,25 @@ const (
 )
 
 const (
-	ctrlA = 1
-	ctrlB = 2
-	ctrlC = 3
-	ctrlD = 4
-	ctrlE = 5
-	ctrlF = 6
-	ctrlH = 8
+	ctrlA  = 1
+	ctrlB  = 2
+	ctrlC  = 3
+	ctrlD  = 4
+	ctrlE  = 5
+	ctrlF  = 6
+	ctrlH  = 8
 	tabKey = 9
-	lf    = 10
-	ctrlK = 11
-	ctrlL = 12
-	cr    = 13
-	ctrlN = 14
-	ctrlP = 16
-	ctrlT = 20
-	ctrlU = 21
-	ctrlW = 23
-	escKey   = 27
-	bs    = 127
+	lf     = 10
+	ctrlK  = 11
+	ctrlL  = 12
+	cr     = 13
+	ctrlN  = 14
+	ctrlP  = 16
+	ctrlT  = 20
+	ctrlU  = 21
+	ctrlW  = 23
+	escKey = 27
+	bs     = 127
 )
 
 const (
@@ -174,9 +174,9 @@ func (s *State) Prompt(p string) (string, error) {
 	if !s.terminalOutput {
 		return "", errNotTerminalOutput
 	}
-
-	defer s.restoreTerminalMode()
-	s.lineEditingMode()
+	if !s.terminalSupported {
+		return s.promptUnsupported(p)
+	}
 
 	s.startPrompt()
 	s.getColumns()
