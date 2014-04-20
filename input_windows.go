@@ -31,6 +31,7 @@ type State struct {
 	commonState
 	handle   syscall.Handle
 	hOut     syscall.Handle
+	editMode uint32
 	origMode uint32
 	key      interface{}
 	repeat   uint16
@@ -46,8 +47,13 @@ const (
 	enableWindowInput    = 0x8
 )
 
-// NewLiner initializes a new *State, and sets the terminal into raw mode. To
-// restore the terminal to its previous state, call State.Close().
+func SupportedTerminal() bool {
+	return true
+}
+
+// NewLiner initializes a new *State, saves the previous terminal mode and
+// sets the terminal into raw mode. To restore the terminal to its previous
+// state, call State.Close().
 func NewLiner() *State {
 	var s State
 	hIn, _, _ := procGetStdHandle.Call(uintptr(std_input_handle))
@@ -58,13 +64,13 @@ func NewLiner() *State {
 	s.terminalSupported = true
 	ok, _, _ := procGetConsoleMode.Call(hIn, uintptr(unsafe.Pointer(&s.origMode)))
 	if ok != 0 {
-		mode := s.origMode
-		mode &^= enableEchoInput
-		mode &^= enableInsertMode
-		mode &^= enableLineInput
-		mode &^= enableMouseInput
-		mode |= enableWindowInput
-		procSetConsoleMode.Call(hIn, uintptr(mode))
+		s.editMode = s.origMode
+		s.editMode &^= enableEchoInput
+		s.editMode &^= enableInsertMode
+		s.editMode &^= enableLineInput
+		s.editMode &^= enableMouseInput
+		s.editMode |= enableWindowInput
+		s.LineEditingMode()
 	}
 
 	s.getColumns()
@@ -167,8 +173,14 @@ func (s *State) readNext() (interface{}, error) {
 			continue
 		}
 
-		if ke.VirtualKeyCode == vk_tab && ke.ControlKeyState&modKeys == shiftPressed {
-			s.key = shiftTab
+		if ke.VirtualKeyCode == vk_tab {
+			if ke.ControlKeyState&modKeys == shiftPressed {
+				s.key = shiftTab
+			} else {
+				s.key = tab
+			}
+		} else if ke.Char == escKey {
+			s.key = esc
 		} else if ke.Char > 0 {
 			s.key = rune(ke.Char)
 		} else {
@@ -247,10 +259,27 @@ func (s *State) promptUnsupported(p string) (string, error) {
 	return "", errors.New("liner: internal error: always supported on Windows")
 }
 
-// Close returns the terminal to its previous mode
 func (s *State) Close() error {
-	procSetConsoleMode.Call(uintptr(s.handle), uintptr(s.origMode))
+	s.OriginalTerminalMode()
 	return nil
+}
+
+// Put the terminal into the mode required for line editing.
+func (s *State) LineEditingMode() {
+	if s == nil {
+		return
+	}
+
+	procSetConsoleMode.Call(uintptr(s.handle), uintptr(s.editMode))
+}
+
+// Return the terminal to its original mode.
+func (s *State) OriginalTerminalMode() {
+	if s == nil {
+		return
+	}
+
+	procSetConsoleMode.Call(uintptr(s.handle), uintptr(s.origMode))
 }
 
 func (s *State) startPrompt() {

@@ -25,36 +25,46 @@ type nexter struct {
 type State struct {
 	commonState
 	r        *bufio.Reader
+	editMode termios
 	origMode termios
 	next     <-chan nexter
 	winch    chan os.Signal
 	pending  []rune
 }
 
-// NewLiner initializes a new *State, and sets the terminal into raw mode. To
-// restore the terminal to its previous state, call State.Close().
+func TerminalSupported() bool {
+	bad := map[string]bool{"": true, "dumb": true, "cons25": true}
+	return !bad[strings.ToLower(os.Getenv("TERM"))]
+}
+
+// NewLiner initializes a new *State, saves the previous terminal mode and
+// sets the terminal into raw mode. To restore the terminal to its previous
+// state, call State.Close().
 //
 // Note if you are still using Go 1.0: NewLiner handles SIGWINCH, so it will
 // leak a channel every time you call it. Therefore, it is recommened that you
 // upgrade to a newer release of Go, or ensure that NewLiner is only called
 // once.
 func NewLiner() *State {
-	bad := map[string]bool{"": true, "dumb": true, "cons25": true}
 	var s State
+
 	s.r = bufio.NewReader(os.Stdin)
 
-	s.terminalSupported = !bad[strings.ToLower(os.Getenv("TERM"))]
-	if s.terminalSupported {
-		syscall.Syscall(syscall.SYS_IOCTL, uintptr(syscall.Stdin), getTermios, uintptr(unsafe.Pointer(&s.origMode)))
-		mode := s.origMode
-		mode.Iflag &^= icrnl | inpck | istrip | ixon
-		mode.Cflag |= cs8
-		mode.Lflag &^= syscall.ECHO | icanon | iexten
-		syscall.Syscall(syscall.SYS_IOCTL, uintptr(syscall.Stdin), setTermios, uintptr(unsafe.Pointer(&mode)))
+	s.terminalSupported = TerminalSupported()
 
-		winch := make(chan os.Signal, 1)
-		signal.Notify(winch, syscall.SIGWINCH)
-		s.winch = winch
+	if s.terminalSupported {
+		syscall.Syscall(syscall.SYS_IOCTL, uintptr(syscall.Stdin),
+			getTermios, uintptr(unsafe.Pointer(&s.origMode)))
+
+		s.editMode = s.origMode
+		s.editMode.Iflag &^= icrnl | inpck | istrip | ixon
+		s.editMode.Cflag |= cs8
+		s.editMode.Lflag &^= syscall.ECHO | icanon | iexten
+
+		s.LineEditingMode()
+
+		s.winch = make(chan os.Signal, 1)
+		signal.Notify(s.winch, syscall.SIGWINCH)
 	}
 
 	s.getColumns()
@@ -123,7 +133,10 @@ func (s *State) readNext() (interface{}, error) {
 		s.getColumns()
 		return winch, nil
 	}
-	if r != esc {
+	if r == tabKey {
+		return tab, nil
+	}
+	if r != escKey {
 		return r, nil
 	}
 	s.pending = append(s.pending, r)
@@ -134,7 +147,7 @@ func (s *State) readNext() (interface{}, error) {
 	flag, err := s.nextPending(timeout)
 	if err != nil {
 		if err == errTimedOut {
-			return flag, nil
+			return esc, nil
 		}
 		return unknown, err
 	}
@@ -306,11 +319,30 @@ func (s *State) promptUnsupported(p string) (string, error) {
 	return string(bytes.TrimSpace(linebuf)), nil
 }
 
-// Close returns the terminal to its previous mode
 func (s *State) Close() error {
-	stopSignal(s.winch)
-	if s.terminalSupported {
-		syscall.Syscall(syscall.SYS_IOCTL, uintptr(syscall.Stdin), setTermios, uintptr(unsafe.Pointer(&s.origMode)))
+	if s != nil {
+		stopSignal(s.winch)
+		s.OriginalTerminalMode()
 	}
 	return nil
+}
+
+// Put the terminal into the mode required for line editing.
+func (s *State) LineEditingMode() {
+	if s == nil || !s.terminalSupported {
+		return
+	}
+
+	syscall.Syscall(syscall.SYS_IOCTL, uintptr(syscall.Stdin),
+		setTermios, uintptr(unsafe.Pointer(&s.editMode)))
+}
+
+// Return the terminal to its original mode.
+func (s *State) OriginalTerminalMode() {
+	if s == nil || !s.terminalSupported {
+		return
+	}
+
+	syscall.Syscall(syscall.SYS_IOCTL, uintptr(syscall.Stdin),
+		setTermios, uintptr(unsafe.Pointer(&s.origMode)))
 }
