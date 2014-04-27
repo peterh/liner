@@ -183,7 +183,7 @@ func (s *State) Prompt(p string) (string, error) {
 	line := make([]rune, 0)
 	pos := 0
 	var historyEnd string
-	prefixHistory := s.GetHistoryByPrefix(string(line))
+	prefixHistory := s.getHistoryByPrefix(string(line))
 	historyPos := len(prefixHistory)
 	var historyAction bool // used to mark history related actions
 mainLoop:
@@ -415,7 +415,7 @@ mainLoop:
 			s.refresh(p, string(line), pos)
 		}
 		if !historyAction {
-			prefixHistory = s.GetHistoryByPrefix(string(line))
+			prefixHistory = s.getHistoryByPrefix(string(line))
 			historyPos = len(prefixHistory)
 		}
 	}

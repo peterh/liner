@@ -83,7 +83,7 @@ func (s *State) AppendHistory(item string) {
 }
 
 // Returns the history lines starting with prefix
-func (s *State) GetHistoryByPrefix(prefix string) (ph []string) {
+func (s *State) getHistoryByPrefix(prefix string) (ph []string) {
 	for _, h := range s.history {
 		if strings.HasPrefix(h, prefix) {
 			ph = append(ph, h)
