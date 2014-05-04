@@ -122,22 +122,23 @@ func (s *State) refresh(prompt string, buf string, pos int) error {
 	return err
 }
 
-func (s *State) tabComplete(p string, line []rune) ([]rune, interface{}, error) {
+func (s *State) tabComplete(p string, line []rune, pos int) ([]rune, int, interface{}, error) {
 	if s.completer == nil {
-		return line, rune(tab), nil
+		return line, pos, rune(tab), nil
 	}
-	list := s.completer(string(line))
+	list := s.completer(string(line[:pos]))
 	if len(list) <= 0 {
-		return line, rune(tab), nil
+		return line, pos, rune(tab), nil
 	}
 	listEntry := 0
+	tail := string(line[pos:])
 	for {
 		pick := list[listEntry]
-		s.refresh(p, pick, len(pick))
+		s.refresh(p, pick+tail, utf8.RuneCountInString(pick))
 
 		next, err := s.readNext()
 		if err != nil {
-			return line, rune(tab), err
+			return line, pos, rune(tab), err
 		}
 		if key, ok := next.(rune); ok {
 			if key == tab {
@@ -149,7 +150,7 @@ func (s *State) tabComplete(p string, line []rune) ([]rune, interface{}, error) 
 				continue
 			}
 			if key == esc {
-				return line, rune(esc), nil
+				return line, pos, rune(esc), nil
 			}
 		}
 		if a, ok := next.(action); ok && a == shiftTab {
@@ -160,10 +161,10 @@ func (s *State) tabComplete(p string, line []rune) ([]rune, interface{}, error) 
 			}
 			continue
 		}
-		return []rune(pick), next, nil
+		return []rune(pick + tail), utf8.RuneCountInString(pick), next, nil
 	}
 	// Not reached
-	return line, rune(tab), nil
+	return line, pos, rune(tab), nil
 }
 
 // Prompt displays p, and then waits for user input. Prompt allows line editing
@@ -194,15 +195,12 @@ mainLoop:
 			return "", err
 		}
 
-		if pos == len(line) {
-			if key, ok := next.(rune); ok && key == tab {
-				line, next, err = s.tabComplete(p, line)
-				if err != nil {
-					return "", err
-				}
-				pos = len(line)
-				s.refresh(p, string(line), pos)
+		if key, ok := next.(rune); ok && key == tab {
+			line, pos, next, err = s.tabComplete(p, line, pos)
+			if err != nil {
+				return "", err
 			}
+			s.refresh(p, string(line), pos)
 		}
 
 		switch v := next.(type) {
