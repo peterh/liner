@@ -107,6 +107,10 @@ type WordCompleter func(line string, pos int) (head string, completions []string
 // SetCompleter sets the completion function that Liner will call to
 // fetch completion candidates when the user presses tab.
 func (s *State) SetCompleter(f Completer) {
+	if f == nil {
+		s.completer = nil
+		return
+	}
 	s.completer = func(line string, pos int) (string, []string, string) {
 		return "", f(line[:pos]), line[pos:]
 	}
