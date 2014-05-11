@@ -126,15 +126,15 @@ func (s *State) tabComplete(p string, line []rune, pos int) ([]rune, int, interf
 	if s.completer == nil {
 		return line, pos, rune(tab), nil
 	}
-	list := s.completer(string(line[:pos]))
+	head, list, tail := s.completer(string(line), pos)
 	if len(list) <= 0 {
 		return line, pos, rune(tab), nil
 	}
 	listEntry := 0
-	tail := string(line[pos:])
+	hl := utf8.RuneCountInString(head)
 	for {
 		pick := list[listEntry]
-		s.refresh(p, pick+tail, utf8.RuneCountInString(pick))
+		s.refresh(p, head+pick+tail, hl+utf8.RuneCountInString(pick))
 
 		next, err := s.readNext()
 		if err != nil {
@@ -161,7 +161,7 @@ func (s *State) tabComplete(p string, line []rune, pos int) ([]rune, int, interf
 			}
 			continue
 		}
-		return []rune(pick + tail), utf8.RuneCountInString(pick), next, nil
+		return []rune(head + pick + tail), hl + utf8.RuneCountInString(pick), next, nil
 	}
 	// Not reached
 	return line, pos, rune(tab), nil

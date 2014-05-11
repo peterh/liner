@@ -18,7 +18,7 @@ type commonState struct {
 	terminalSupported bool
 	terminalOutput    bool
 	history           []string
-	completer         Completer
+	completer         WordCompleter
 	columns           int
 }
 
@@ -92,12 +92,28 @@ func (s *State) getHistoryByPrefix(prefix string) (ph []string) {
 	return
 }
 
-// Completer takes the currently edited line and returns a list
-// of completion candidates.
+// Completer takes the currently edited line content at the left of the cursor
+// and returns a list of completion candidates.
+// If the line is "Hello, wo!!!" and the cursor is before the first '!', "Hello, wo" is passed
+// to the completer which may return {"Hello, world", "Hello, Word"} to have "Hello, world!!!".
 type Completer func(line string) []string
+
+// WordCompleter takes the currently edited line with the cursor position and
+// returns the completion candidates for the partial word to be completed.
+// If the line is "Hello, wo!!!" and the cursor is before the first '!', ("Hello, wo!!!", 9) is passed
+// to the completer which may returns ("Hello, ", {"world", "Word"}, "!!!") to have "Hello, world!!!".
+type WordCompleter func(line string, pos int) (head string, completions []string, tail string)
 
 // SetCompleter sets the completion function that Liner will call to
 // fetch completion candidates when the user presses tab.
 func (s *State) SetCompleter(f Completer) {
+	s.completer = func(line string, pos int) (string, []string, string) {
+		return "", f(line[:pos]), line[pos:]
+	}
+}
+
+// SetWordCompleter sets the completion function that Liner will call to
+// fetch completion candidates when the user presses tab.
+func (s *State) SetWordCompleter(f WordCompleter) {
 	s.completer = f
 }
