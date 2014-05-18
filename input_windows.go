@@ -26,12 +26,14 @@ const (
 	std_error_handle  = uint32(-12 & 0xFFFFFFFF)
 )
 
+type TerminalMode uint32
+
 // State represents an open terminal
 type State struct {
 	commonState
 	handle   syscall.Handle
 	hOut     syscall.Handle
-	origMode uint32
+	origMode TerminalMode
 	key      interface{}
 	repeat   uint16
 }
@@ -55,16 +57,16 @@ func NewLiner() *State {
 	hOut, _, _ := procGetStdHandle.Call(uintptr(std_output_handle))
 	s.hOut = syscall.Handle(hOut)
 
-	s.terminalSupported = true
-	ok, _, _ := procGetConsoleMode.Call(hIn, uintptr(unsafe.Pointer(&s.origMode)))
+	s.terminalSupported = TerminalSupported()
+	mode, ok := s.GetTerminalMode()
 	if ok != 0 {
-		mode := s.origMode
+		s.origMode = mode
 		mode &^= enableEchoInput
 		mode &^= enableInsertMode
 		mode &^= enableLineInput
 		mode &^= enableMouseInput
 		mode |= enableWindowInput
-		procSetConsoleMode.Call(hIn, uintptr(mode))
+		s.SetTerminalMode(mode)
 	}
 
 	s.getColumns()
@@ -249,9 +251,29 @@ func (s *State) promptUnsupported(p string) (string, error) {
 
 // Close returns the terminal to its previous mode
 func (s *State) Close() error {
+	SetTerminalMode(s.origMode)
 	procSetConsoleMode.Call(uintptr(s.handle), uintptr(s.origMode))
 	return nil
 }
 
 func (s *State) startPrompt() {
+}
+
+func (s *State) GetOriginalMode() (TerminalMode, bool) {
+	return s.origMode, true
+}
+
+func (s *State) GetTerminalMode() (TerminalMode, bool) {
+	var mode TerminalMode
+	ok, _, _ := procGetConsoleMode.Call(uintptr(s.handle), uintptr(unsafe.Pointer(&mode)))
+	return mode, ok
+}
+
+func (s *State) SetTerminalMode(mode TerminalMode) bool {
+	procSetConsoleMode.Call(uintptr(s.handle), uintptr(mode))
+	return true
+}
+
+func TerminalSupported() {
+	return true
 }
