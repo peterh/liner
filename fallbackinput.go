@@ -40,3 +40,9 @@ func NewLiner() *State {
 func (s *State) Close() error {
 	return nil
 }
+
+// TerminalSupported returns false because line editing is not
+// supported on this platform.
+func TerminalSupported() bool {
+	return false
+}

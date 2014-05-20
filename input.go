@@ -40,11 +40,10 @@ type State struct {
 // upgrade to a newer release of Go, or ensure that NewLiner is only called
 // once.
 func NewLiner() *State {
-	bad := map[string]bool{"": true, "dumb": true, "cons25": true}
 	var s State
 	s.r = bufio.NewReader(os.Stdin)
 
-	s.terminalSupported = !bad[strings.ToLower(os.Getenv("TERM"))]
+	s.terminalSupported = TerminalSupported()
 	if s.terminalSupported {
 		syscall.Syscall(syscall.SYS_IOCTL, uintptr(syscall.Stdin), getTermios, uintptr(unsafe.Pointer(&s.origMode)))
 		mode := s.origMode
@@ -322,4 +321,12 @@ func (s *State) Close() error {
 		syscall.Syscall(syscall.SYS_IOCTL, uintptr(syscall.Stdin), setTermios, uintptr(unsafe.Pointer(&s.origMode)))
 	}
 	return nil
+}
+
+// TerminalSupported returns true if the current terminal supports
+// line editing features, and false if liner will use the 'dumb'
+// fallback for input.
+func TerminalSupported() bool {
+	bad := map[string]bool{"": true, "dumb": true, "cons25": true}
+	return !bad[strings.ToLower(os.Getenv("TERM"))]
 }

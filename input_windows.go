@@ -255,3 +255,9 @@ func (s *State) Close() error {
 
 func (s *State) startPrompt() {
 }
+
+// TerminalSupported returns true because line editing is always
+// supported on Windows.
+func TerminalSupported() bool {
+	return true
+}
