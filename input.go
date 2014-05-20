@@ -1,4 +1,4 @@
-// +build linux darwin
+// +build linux darwin openbsd freebsd netbsd
 
 package liner
 
