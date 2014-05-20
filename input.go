@@ -29,6 +29,7 @@ type State struct {
 	next     <-chan nexter
 	winch    chan os.Signal
 	pending  []rune
+	useCHA   bool
 }
 
 // NewLiner initializes a new *State, and sets the terminal into raw mode. To
@@ -59,6 +60,8 @@ func NewLiner() *State {
 
 	s.getColumns()
 	s.terminalOutput = s.columns > 0
+
+	s.checkOutput()
 
 	return &s
 }
