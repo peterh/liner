@@ -25,7 +25,7 @@ type nexter struct {
 type State struct {
 	commonState
 	r        *bufio.Reader
-	origMode termios
+	origMode TerminalMode
 	next     <-chan nexter
 	winch    chan os.Signal
 	pending  []rune
@@ -40,18 +40,17 @@ type State struct {
 // upgrade to a newer release of Go, or ensure that NewLiner is only called
 // once.
 func NewLiner() *State {
-	bad := map[string]bool{"": true, "dumb": true, "cons25": true}
 	var s State
 	s.r = bufio.NewReader(os.Stdin)
 
-	s.terminalSupported = !bad[strings.ToLower(os.Getenv("TERM"))]
+	s.terminalSupported = TerminalSupported()
 	if s.terminalSupported {
-		syscall.Syscall(syscall.SYS_IOCTL, uintptr(syscall.Stdin), getTermios, uintptr(unsafe.Pointer(&s.origMode)))
-		mode := s.origMode
+		mode, _ := s.GetTerminalMode()
+		s.origMode = mode
 		mode.Iflag &^= icrnl | inpck | istrip | ixon
 		mode.Cflag |= cs8
 		mode.Lflag &^= syscall.ECHO | icanon | iexten
-		syscall.Syscall(syscall.SYS_IOCTL, uintptr(syscall.Stdin), setTermios, uintptr(unsafe.Pointer(&mode)))
+		s.SetTerminalMode(mode)
 
 		winch := make(chan os.Signal, 1)
 		signal.Notify(winch, syscall.SIGWINCH)
@@ -319,7 +318,27 @@ func (s *State) promptUnsupported(p string) (string, error) {
 func (s *State) Close() error {
 	stopSignal(s.winch)
 	if s.terminalSupported {
-		syscall.Syscall(syscall.SYS_IOCTL, uintptr(syscall.Stdin), setTermios, uintptr(unsafe.Pointer(&s.origMode)))
+		s.SetTerminalMode(s.origMode)
 	}
 	return nil
+}
+
+func (s *State) GetOriginalMode() (TerminalMode, bool) {
+	return s.origMode, TerminalSupported()
+}
+
+func (s *State) GetTerminalMode() (TerminalMode, bool) {
+	var mode TerminalMode
+	_, _, errno := syscall.Syscall(syscall.SYS_IOCTL, uintptr(syscall.Stdin), getTermios, uintptr(unsafe.Pointer(&mode)))
+	return mode, errno == 0
+}
+
+func (s *State) SetTerminalMode(mode TerminalMode) bool {
+	_, _, errno := syscall.Syscall(syscall.SYS_IOCTL, uintptr(syscall.Stdin), setTermios, uintptr(unsafe.Pointer(&mode)))
+	return errno == 0
+}
+
+func TerminalSupported() bool {
+	bad := map[string]bool{"": true, "dumb": true, "cons25": true}
+	return !bad[strings.ToLower(os.Getenv("TERM"))]
 }

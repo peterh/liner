@@ -20,6 +20,6 @@ const (
 	iexten = syscall.IEXTEN
 )
 
-type termios struct {
+type TerminalMode struct {
 	syscall.Termios
 }
