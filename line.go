@@ -181,7 +181,7 @@ func (s *State) Prompt(p string) (string, error) {
 	s.getColumns()
 
 	fmt.Print(p)
-	line := make([]rune, 0)
+	var line []rune
 	pos := 0
 	var historyEnd string
 	prefixHistory := s.getHistoryByPrefix(string(line))

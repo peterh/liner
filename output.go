@@ -50,7 +50,7 @@ func (s *State) getColumns() {
 
 func (s *State) getPos() (x, y int64, err error) {
 	fmt.Print("\x1b[6n")
-	reply := make([]rune, 0)
+	var reply []rune
 	for {
 		var r rune
 		r, _, err = s.r.ReadRune()
