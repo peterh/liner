@@ -21,17 +21,20 @@ var (
 // These names are from the Win32 api, so they use underscores (contrary to
 // what golint suggests)
 const (
-	std_input_handle  = uint32(-10 & 0xFFFFFFFF)
-	std_output_handle = uint32(-11 & 0xFFFFFFFF)
-	std_error_handle  = uint32(-12 & 0xFFFFFFFF)
+	std_input_handle     = uint32(-10 & 0xFFFFFFFF)
+	std_output_handle    = uint32(-11 & 0xFFFFFFFF)
+	std_error_handle     = uint32(-12 & 0xFFFFFFFF)
+	invalid_handle_value = ^uintptr(0)
 )
+
+type inputMode uint32
 
 // State represents an open terminal
 type State struct {
 	commonState
 	handle   syscall.Handle
 	hOut     syscall.Handle
-	origMode uint32
+	origMode inputMode
 	key      interface{}
 	repeat   uint16
 }
@@ -56,15 +59,15 @@ func NewLiner() *State {
 	s.hOut = syscall.Handle(hOut)
 
 	s.terminalSupported = true
-	ok, _, _ := procGetConsoleMode.Call(hIn, uintptr(unsafe.Pointer(&s.origMode)))
-	if ok != 0 {
+	if m, err := TerminalMode(); err == nil {
+		s.origMode = m.(inputMode)
 		mode := s.origMode
 		mode &^= enableEchoInput
 		mode &^= enableInsertMode
 		mode &^= enableLineInput
 		mode &^= enableMouseInput
 		mode |= enableWindowInput
-		procSetConsoleMode.Call(hIn, uintptr(mode))
+		mode.ApplyMode()
 	}
 
 	s.getColumns()
@@ -249,7 +252,7 @@ func (s *State) promptUnsupported(p string) (string, error) {
 
 // Close returns the terminal to its previous mode
 func (s *State) Close() error {
-	procSetConsoleMode.Call(uintptr(s.handle), uintptr(s.origMode))
+	s.origMode.ApplyMode()
 	return nil
 }
 
@@ -260,4 +263,33 @@ func (s *State) startPrompt() {
 // supported on Windows.
 func TerminalSupported() bool {
 	return true
+}
+
+func (mode inputMode) ApplyMode() error {
+	hIn, _, err := procGetStdHandle.Call(uintptr(std_input_handle))
+	if hIn == invalid_handle_value || hIn == 0 {
+		return err
+	}
+	ok, _, err := procSetConsoleMode.Call(hIn, uintptr(mode))
+	if ok != 0 {
+		err = nil
+	}
+	return err
+}
+
+// TerminalMode returns the current terminal input mode as an InputModeSetter.
+//
+// This function is provided for convenience, and should
+// not be necessary for most users of liner.
+func TerminalMode() (ModeApplier, error) {
+	var mode inputMode
+	hIn, _, err := procGetStdHandle.Call(uintptr(std_input_handle))
+	if hIn == invalid_handle_value || hIn == 0 {
+		return nil, err
+	}
+	ok, _, err := procGetConsoleMode.Call(hIn, uintptr(unsafe.Pointer(&mode)))
+	if ok != 0 {
+		err = nil
+	}
+	return mode, err
 }

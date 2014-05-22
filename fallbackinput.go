@@ -46,3 +46,14 @@ func (s *State) Close() error {
 func TerminalSupported() bool {
 	return false
 }
+
+type noopMode struct{}
+
+func (n noopMode) ApplyMode() error {
+	return nil
+}
+
+// TerminalMode returns a noop InputModeSetter on this platform.
+func TerminalMode() (ModeApplier, error) {
+	return noopMode{}, nil
+}

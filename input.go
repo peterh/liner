@@ -13,7 +13,6 @@ import (
 	"strings"
 	"syscall"
 	"time"
-	"unsafe"
 )
 
 type nexter struct {
@@ -45,12 +44,13 @@ func NewLiner() *State {
 
 	s.terminalSupported = TerminalSupported()
 	if s.terminalSupported {
-		syscall.Syscall(syscall.SYS_IOCTL, uintptr(syscall.Stdin), getTermios, uintptr(unsafe.Pointer(&s.origMode)))
+		m, _ := TerminalMode()
+		s.origMode = *m.(*termios)
 		mode := s.origMode
 		mode.Iflag &^= icrnl | inpck | istrip | ixon
 		mode.Cflag |= cs8
 		mode.Lflag &^= syscall.ECHO | icanon | iexten
-		syscall.Syscall(syscall.SYS_IOCTL, uintptr(syscall.Stdin), setTermios, uintptr(unsafe.Pointer(&mode)))
+		mode.ApplyMode()
 
 		winch := make(chan os.Signal, 1)
 		signal.Notify(winch, syscall.SIGWINCH)
@@ -318,7 +318,7 @@ func (s *State) promptUnsupported(p string) (string, error) {
 func (s *State) Close() error {
 	stopSignal(s.winch)
 	if s.terminalSupported {
-		syscall.Syscall(syscall.SYS_IOCTL, uintptr(syscall.Stdin), setTermios, uintptr(unsafe.Pointer(&s.origMode)))
+		s.origMode.ApplyMode()
 	}
 	return nil
 }

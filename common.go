@@ -121,3 +121,9 @@ func (s *State) SetCompleter(f Completer) {
 func (s *State) SetWordCompleter(f WordCompleter) {
 	s.completer = f
 }
+
+// ModeApplier is the interface that wraps a representation of the terminal
+// mode. ApplyMode sets the terminal to this mode.
+type ModeApplier interface {
+	ApplyMode() error
+}
