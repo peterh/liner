@@ -92,22 +92,22 @@ func (s *State) checkOutput() {
 	}
 
 	// test for functional ANSI CHA
-	x_orig, _, err := s.getPos()
+	xOrig, _, err := s.getPos()
 	if err != nil {
 		return
 	}
 
 	// Move using CHA
-	fmt.Printf("\x1b[%dG", x_orig+1%2)
+	fmt.Printf("\x1b[%dG", xOrig+1%2)
 	x, _, err := s.getPos()
 	if err != nil {
 		return
 	}
-	if x == x_orig {
+	if x == xOrig {
 		return
 	}
 
 	// X moved, CHA is functional
 	s.useCHA = true
-	s.cursorPos(int(x_orig - 1))
+	s.cursorPos(int(xOrig - 1))
 }
