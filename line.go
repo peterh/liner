@@ -11,6 +11,7 @@ import (
 
 type action int
 
+
 const (
 	left action = iota
 	right
@@ -66,6 +67,21 @@ const (
 const (
 	beep = "\a"
 )
+
+
+var line []rune
+var pos int = 0
+var prompt string
+
+func (s *State) PrintAbovePrompt(str string) {
+  out := "\r" + str
+  for i:=len(out); i<s.columns; i++ { // here clear the line adding spaces upto terminal width
+    out = out + " "
+  }
+  fmt.Println(out)
+
+  s.refresh(prompt, string(line), pos)
+}
 
 func (s *State) refresh(prompt string, buf string, pos int) error {
 	s.cursorPos(0)
@@ -170,6 +186,7 @@ func (s *State) tabComplete(p string, line []rune, pos int) ([]rune, int, interf
 // Prompt displays p, and then waits for user input. Prompt allows line editing
 // if the terminal supports it.
 func (s *State) Prompt(p string) (string, error) {
+  prompt = p
 	if !s.terminalOutput {
 		return "", errNotTerminalOutput
 	}
@@ -181,8 +198,6 @@ func (s *State) Prompt(p string) (string, error) {
 	s.getColumns()
 
 	fmt.Print(p)
-	var line []rune
-	pos := 0
 	var historyEnd string
 	prefixHistory := s.getHistoryByPrefix(string(line))
 	historyPos := len(prefixHistory)
