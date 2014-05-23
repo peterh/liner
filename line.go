@@ -67,19 +67,30 @@ const (
 	beep = "\a"
 )
 
-
+// global vars for Prompt func
 var line []rune
 var pos int = 0
 var prompt string
 
-func (s *State) PrintAbovePrompt(str string) {
-  out := "\r" + str
-  for i:=len(out); i<s.columns; i++ { // here clear the line adding spaces upto terminal width
-    out = out + " "
-  }
-  fmt.Println(out)
+// remembers if we are in tabComplete func or not (used for refreshing prompt)
+var tabbing bool = false 
 
-  s.refresh(prompt, string(line), pos)
+// global vars for tabComplete
+var hl int
+var head, pick, tail string 
+
+func (s *State) PrintAbovePrompt(str string) {
+	out := "\r" + str
+	for i := len(out); i < s.columns; i++ { // here clear the line adding spaces upto terminal width
+		out = out + " "
+	}
+	fmt.Println(out)
+
+  if tabbing {
+    s.refresh(prompt, head+pick+tail, hl+utf8.RuneCountInString(pick))
+  } else {
+	  s.refresh(prompt, string(line), pos)
+  }
 }
 
 func (s *State) refresh(prompt string, buf string, pos int) error {
@@ -141,14 +152,15 @@ func (s *State) tabComplete(p string, line []rune, pos int) ([]rune, int, interf
 	if s.completer == nil {
 		return line, pos, rune(tab), nil
 	}
-	head, list, tail := s.completer(string(line), pos)
+  var list []string
+	head, list, tail = s.completer(string(line), pos)
 	if len(list) <= 0 {
 		return line, pos, rune(tab), nil
 	}
 	listEntry := 0
-	hl := utf8.RuneCountInString(head)
+	hl = utf8.RuneCountInString(head)
 	for {
-		pick := list[listEntry]
+		pick = list[listEntry]
 		s.refresh(p, head+pick+tail, hl+utf8.RuneCountInString(pick))
 
 		next, err := s.readNext()
@@ -185,7 +197,7 @@ func (s *State) tabComplete(p string, line []rune, pos int) ([]rune, int, interf
 // Prompt displays p, and then waits for user input. Prompt allows line editing
 // if the terminal supports it.
 func (s *State) Prompt(p string) (string, error) {
-  prompt = p
+	prompt = p
 	if !s.terminalOutput {
 		return "", errNotTerminalOutput
 	}
@@ -210,7 +222,9 @@ mainLoop:
 		}
 
 		if key, ok := next.(rune); ok && key == tab {
+      tabbing = true
 			line, pos, next, err = s.tabComplete(p, line, pos)
+      tabbing = false
 			if err != nil {
 				return "", err
 			}
