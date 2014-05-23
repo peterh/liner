@@ -11,7 +11,6 @@ import (
 
 type action int
 
-
 const (
 	left action = iota
 	right
