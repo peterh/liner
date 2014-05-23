@@ -73,11 +73,11 @@ var pos int = 0
 var prompt string
 
 // remembers if we are in tabComplete func or not (used for refreshing prompt)
-var tabbing bool = false 
+var tabbing bool = false
 
 // global vars for tabComplete
 var hl int
-var head, pick, tail string 
+var head, pick, tail string
 
 func (s *State) PrintAbovePrompt(str string) {
 	out := "\r" + str
@@ -86,11 +86,11 @@ func (s *State) PrintAbovePrompt(str string) {
 	}
 	fmt.Println(out)
 
-  if tabbing {
-    s.refresh(prompt, head+pick+tail, hl+utf8.RuneCountInString(pick))
-  } else {
-	  s.refresh(prompt, string(line), pos)
-  }
+	if tabbing {
+		s.refresh(prompt, head+pick+tail, hl+utf8.RuneCountInString(pick))
+	} else {
+		s.refresh(prompt, string(line), pos)
+	}
 }
 
 func (s *State) refresh(prompt string, buf string, pos int) error {
@@ -152,7 +152,7 @@ func (s *State) tabComplete(p string, line []rune, pos int) ([]rune, int, interf
 	if s.completer == nil {
 		return line, pos, rune(tab), nil
 	}
-  var list []string
+	var list []string
 	head, list, tail = s.completer(string(line), pos)
 	if len(list) <= 0 {
 		return line, pos, rune(tab), nil
@@ -222,9 +222,9 @@ mainLoop:
 		}
 
 		if key, ok := next.(rune); ok && key == tab {
-      tabbing = true
+			tabbing = true
 			line, pos, next, err = s.tabComplete(p, line, pos)
-      tabbing = false
+			tabbing = false
 			if err != nil {
 				return "", err
 			}
