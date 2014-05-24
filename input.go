@@ -55,12 +55,12 @@ func NewLiner() *State {
 		winch := make(chan os.Signal, 1)
 		signal.Notify(winch, syscall.SIGWINCH)
 		s.winch = winch
+
+		s.checkOutput()
 	}
 
 	s.getColumns()
 	s.terminalOutput = s.columns > 0
-
-	s.checkOutput()
 
 	return &s
 }
