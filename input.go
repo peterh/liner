@@ -284,6 +284,10 @@ func (s *State) readNext() (interface{}, error) {
 		}
 		s.pending = s.pending[:0] // escape code complete
 		switch code {
+		case 'c':
+			return wordRight, nil
+		case 'd':
+			return wordLeft, nil
 		case 'H':
 			return home, nil
 		case 'F':
