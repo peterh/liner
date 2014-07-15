@@ -4,9 +4,7 @@ package liner
 
 import (
 	"fmt"
-	"io"
 	"os"
-	"strconv"
 	"strings"
 	"syscall"
 	"unsafe"
@@ -48,42 +46,6 @@ func (s *State) getColumns() {
 	s.columns = int(ws.col)
 }
 
-func (s *State) getPos() (x, y int64, err error) {
-	fmt.Print("\x1b[6n")
-	var reply []rune
-	for {
-		var r rune
-		r, _, err = s.r.ReadRune()
-		if err != nil {
-			return
-		}
-		if r == 'R' {
-			break
-		}
-		if len(reply) == 0 && r != 0x1b {
-			return 0, 0, io.ErrUnexpectedEOF
-		}
-		if len(reply) == 1 && r != '[' {
-			return 0, 0, io.ErrUnexpectedEOF
-		}
-		reply = append(reply, r)
-	}
-
-	if len(reply) < 3 {
-		return 0, 0, io.ErrUnexpectedEOF
-	}
-	num := strings.Split(string(reply[2:]), ";")
-	if len(num) != 2 {
-		return 0, 0, io.ErrUnexpectedEOF
-	}
-	y, err = strconv.ParseInt(num[0], 10, 32)
-	if err != nil {
-		return
-	}
-	x, err = strconv.ParseInt(num[1], 10, 32)
-	return
-}
-
 func (s *State) checkOutput() {
 	// xterm is known to support CHA
 	if strings.Contains(strings.ToLower(os.Getenv("TERM")), "xterm") {
@@ -91,23 +53,11 @@ func (s *State) checkOutput() {
 		return
 	}
 
-	// test for functional ANSI CHA
-	xOrig, _, err := s.getPos()
-	if err != nil {
-		return
-	}
+	// The test for functional ANSI CHA is unreliable (eg the Windows
+	// telnet command does not support reading the cursor position with
+	// an ANSI DSR request, despite setting TERM=ansi)
 
-	// Move using CHA
-	fmt.Printf("\x1b[%dG", xOrig+1%2)
-	x, _, err := s.getPos()
-	if err != nil {
-		return
-	}
-	if x == xOrig {
-		return
-	}
-
-	// X moved, CHA is functional
-	s.useCHA = true
-	s.cursorPos(int(xOrig - 1))
+	// Assume CHA isn't supported (which should be safe, although it
+	// does result in occasional visible cursor jitter)
+	s.useCHA = false
 }
