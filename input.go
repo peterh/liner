@@ -75,8 +75,7 @@ func (s *State) startPrompt() {
 			n.r, _, n.err = s.r.ReadRune()
 			next <- n
 			// Shut down nexter loop when an end condition has been reached
-			// with the exception that this does not detect ^D on an empty line
-			if n.err != nil || n.r == '\n' || n.r == '\r' {
+			if n.err != nil || n.r == '\n' || n.r == '\r' || n.r == ctrlD {
 				close(next)
 				return
 			}

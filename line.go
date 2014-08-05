@@ -234,6 +234,11 @@ mainLoop:
 					// exit
 					return "", io.EOF
 				}
+
+				// ctrlD is a potential EOF, so the rune reader shuts down.
+				// Therefore, if it isn't actually an EOF, we must re-startPrompt.
+				s.startPrompt()
+
 				if pos >= len(line) {
 					fmt.Print(beep)
 				} else {
