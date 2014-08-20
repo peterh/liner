@@ -177,6 +177,9 @@ func (s *State) Prompt(p string) (string, error) {
 		return s.promptUnsupported(p)
 	}
 
+	s.historyMutex.RLock()
+	defer s.historyMutex.RUnlock()
+
 	s.startPrompt()
 	s.getColumns()
 

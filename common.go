@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"io"
 	"strings"
+	"sync"
 	"unicode/utf8"
 )
 
@@ -18,6 +19,7 @@ type commonState struct {
 	terminalSupported bool
 	terminalOutput    bool
 	history           []string
+	historyMutex      sync.RWMutex
 	completer         WordCompleter
 	columns           int
 }
@@ -30,6 +32,9 @@ const HistoryLimit = 1000
 // ReadHistory reads scrollback history from r. Returns the number of lines
 // read, and any read error (except io.EOF).
 func (s *State) ReadHistory(r io.Reader) (num int, err error) {
+	s.historyMutex.Lock()
+	defer s.historyMutex.Unlock()
+
 	in := bufio.NewReader(r)
 	num = 0
 	for {
@@ -57,7 +62,15 @@ func (s *State) ReadHistory(r io.Reader) (num int, err error) {
 
 // WriteHistory writes scrollback history to w. Returns the number of lines
 // successfully written, and any write error.
+//
+// Unlike the rest of liner's API, WriteHistory is safe to call
+// from another goroutine while Prompt is in progress.
+// This exception is to facilitate the saving of the history buffer
+// during an unexpected exit (for example, due to Ctrl-C being invoked)
 func (s *State) WriteHistory(w io.Writer) (num int, err error) {
+	s.historyMutex.RLock()
+	defer s.historyMutex.RUnlock()
+
 	for _, item := range s.history {
 		_, err := fmt.Fprintln(w, item)
 		if err != nil {
@@ -71,6 +84,9 @@ func (s *State) WriteHistory(w io.Writer) (num int, err error) {
 // AppendHistory appends an entry to the scrollback history. AppendHistory
 // should be called iff Prompt returns a valid command.
 func (s *State) AppendHistory(item string) {
+	s.historyMutex.Lock()
+	defer s.historyMutex.Unlock()
+
 	if len(s.history) > 0 {
 		if item == s.history[len(s.history)-1] {
 			return
