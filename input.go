@@ -44,8 +44,13 @@ func NewLiner() *State {
 
 	s.terminalSupported = TerminalSupported()
 	if s.terminalSupported {
-		m, _ := TerminalMode()
-		s.origMode = *m.(*termios)
+		if m, err := TerminalMode(); err == nil {
+			s.origMode = *m.(*termios)
+		} else {
+			s.terminalSupported = false
+		}
+	}
+	if s.terminalSupported {
 		mode := s.origMode
 		mode.Iflag &^= icrnl | inpck | istrip | ixon
 		mode.Cflag |= cs8
