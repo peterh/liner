@@ -48,6 +48,7 @@ const (
 	ctrlD = 4
 	ctrlE = 5
 	ctrlF = 6
+	ctrlG = 7
 	ctrlH = 8
 	tab   = 9
 	lf    = 10
@@ -55,10 +56,18 @@ const (
 	ctrlL = 12
 	cr    = 13
 	ctrlN = 14
+	ctrlO = 15
 	ctrlP = 16
+	ctrlQ = 17
+	ctrlR = 18
+	ctrlS = 19
 	ctrlT = 20
 	ctrlU = 21
+	ctrlV = 22
 	ctrlW = 23
+	ctrlX = 24
+	ctrlY = 25
+	ctrlZ = 26
 	esc   = 27
 	bs    = 127
 )
@@ -167,6 +176,110 @@ func (s *State) tabComplete(p string, line []rune, pos int) ([]rune, int, interf
 	return line, pos, rune(tab), nil
 }
 
+// reverse intelligent search, implements a bash-like history search.
+func (s *State) reverseISearch(line []rune, pos int) ([]rune, int, interface{}, error) {
+	p := "(reverse-i-search)`': "
+	s.refresh(p, string(line), pos)
+
+	line = []rune{}
+	pos = 0
+	var foundLine string
+	var foundPos int
+
+	getLine := func() (string, string, int) {
+		search := string(line)
+		prompt := "(reverse-i-search)`%s': "
+		return fmt.Sprintf(prompt, search), foundLine, foundPos
+	}
+
+	history, positions := s.getHistoryByPattern(string(line))
+	historyPos := len(history) - 1
+
+	for {
+		next, err := s.readNext()
+		if err != nil {
+			return []rune(foundLine), foundPos, esc, err
+		}
+
+		switch v := next.(type) {
+		case rune:
+			switch v {
+			case ctrlR: // Search backwards
+				if historyPos > 0 && historyPos < len(history) {
+					historyPos--
+					foundLine = history[historyPos]
+					foundPos = positions[historyPos]
+				} else {
+					fmt.Print(beep)
+				}
+			case ctrlS: // Search forward
+				if historyPos < len(history)-1 && historyPos >= 0 {
+					historyPos++
+					foundLine = history[historyPos]
+					foundPos = positions[historyPos]
+				} else {
+					fmt.Print(beep)
+				}
+			case ctrlH, bs: // Backspace
+				if pos <= 0 {
+					fmt.Print(beep)
+				} else {
+					line = append(line[:pos-1], line[pos:]...)
+					pos--
+				}
+
+			case tab, cr, lf, ctrlA, ctrlB, ctrlD, ctrlE, ctrlF, ctrlG, ctrlK,
+				ctrlL, ctrlN, ctrlO, ctrlP, ctrlQ, ctrlT, ctrlU, ctrlV, ctrlW, ctrlX, ctrlY, ctrlZ:
+				fallthrough
+			case 0, ctrlC, esc, 28, 29, 30, 31:
+				return []rune(foundLine), foundPos, next, err
+			default:
+				if pos == len(line) && len(p)+len(line) < s.columns {
+					line = append(line, v)
+					pos++
+				} else {
+					line = append(line[:pos], append([]rune{v}, line[pos:]...)...)
+					pos++
+				}
+
+				// For each keystroke typed, display the last matching line of history
+				history, positions = s.getHistoryByPattern(string(line))
+				historyPos = len(history) - 1
+				if len(history) > 0 {
+					foundLine = history[historyPos]
+					foundPos = positions[historyPos]
+				} else {
+					foundLine = ""
+					foundPos = 0
+				}
+			}
+		case action:
+			switch v {
+			case del:
+				if pos >= len(line) {
+					fmt.Print(beep)
+				} else {
+					line = append(line[:pos], line[pos+1:]...)
+
+					// For each char deleted, display the last matching line of history
+					history, positions := s.getHistoryByPattern(string(line))
+					historyPos = len(history) - 1
+					if len(history) > 0 {
+						foundLine = history[historyPos]
+						foundPos = positions[historyPos]
+					} else {
+						foundLine = ""
+						foundPos = 0
+					}
+				}
+			case left, wordLeft, right, wordRight, up, down, home, end:
+				return []rune(foundLine), foundPos, next, err
+			}
+		}
+		s.refresh(getLine())
+	}
+}
+
 // Prompt displays p, and then waits for user input. Prompt allows line editing
 // if the terminal supports it.
 func (s *State) Prompt(p string) (string, error) {
@@ -198,8 +311,18 @@ mainLoop:
 			return "", err
 		}
 
+		// If the key is a tab do autocomplete, and then resume execution as usual
 		if key, ok := next.(rune); ok && key == tab {
 			line, pos, next, err = s.tabComplete(p, line, pos)
+			if err != nil {
+				return "", err
+			}
+			s.refresh(p, string(line), pos)
+		}
+
+		// If the key is a CtrlR do reverse intelligent search, then resume execution
+		if key, ok := next.(rune); ok && key == ctrlR {
+			line, pos, next, err = s.reverseISearch(line, pos)
 			if err != nil {
 				return "", err
 			}
@@ -330,10 +453,17 @@ mainLoop:
 					pos--
 				}
 				s.refresh(p, string(line), pos)
-			// Catch unhandled control codes (anything <= 31)
-			case 0, 3, 7, 9, 15:
+			// Catch keys that do nothing, but you don't want them to beep
+			case esc:
+				// DO NOTHING
+			// Catch keys that are handled before the switch
+			case tab, ctrlR:
 				fallthrough
-			case 17, 18, 19, 22, 24, 25, 26, 27, 28, 29, 30, 31:
+			// Unused keys
+			case ctrlG, ctrlO, ctrlQ, ctrlS, ctrlV, ctrlX, ctrlY, ctrlZ:
+				fallthrough
+			// Catch unhandled control codes (anything <= 31)
+			case 0, ctrlC, 28, 29, 30, 31:
 				fmt.Print(beep)
 			default:
 				if pos == len(line) && len(p)+len(line) < s.columns {

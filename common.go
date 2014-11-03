@@ -108,6 +108,17 @@ func (s *State) getHistoryByPrefix(prefix string) (ph []string) {
 	return
 }
 
+// Returns the history lines matching the inteligent search
+func (s *State) getHistoryByPattern(pattern string) (ph []string, pos []int) {
+	for _, h := range s.history {
+		if i := strings.Index(h, pattern); i >= 0 {
+			ph = append(ph, h)
+			pos = append(pos, i)
+		}
+	}
+	return
+}
+
 // Completer takes the currently edited line content at the left of the cursor
 // and returns a list of completion candidates.
 // If the line is "Hello, wo!!!" and the cursor is before the first '!', "Hello, wo" is passed
