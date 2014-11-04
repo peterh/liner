@@ -33,6 +33,7 @@ Ctrl-K       | Delete from cursor to end of line
 Ctrl-U       | Delete from start of line to cursor
 Ctrl-P, Up   | Previous match from history
 Ctrl-N, Down | Next match from history
+Ctrl-R       | Reverse Search history (Ctrl-S forward, Ctrl-G cancel)
 Tab          | Next completion
 Shift-Tab    | (after Tab) Previous completion
 
