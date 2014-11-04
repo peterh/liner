@@ -177,12 +177,12 @@ func (s *State) tabComplete(p string, line []rune, pos int) ([]rune, int, interf
 }
 
 // reverse intelligent search, implements a bash-like history search.
-func (s *State) reverseISearch(line []rune, pos int) ([]rune, int, interface{}, error) {
+func (s *State) reverseISearch(origLine []rune, origPos int) ([]rune, int, interface{}, error) {
 	p := "(reverse-i-search)`': "
-	s.refresh(p, string(line), pos)
+	s.refresh(p, string(origLine), origPos)
 
-	line = []rune{}
-	pos = 0
+	line := []rune{}
+	pos := 0
 	var foundLine string
 	var foundPos int
 
@@ -227,8 +227,10 @@ func (s *State) reverseISearch(line []rune, pos int) ([]rune, int, interface{}, 
 					line = append(line[:pos-1], line[pos:]...)
 					pos--
 				}
+			case ctrlG: // Cancel
+				return origLine, origPos, esc, err
 
-			case tab, cr, lf, ctrlA, ctrlB, ctrlD, ctrlE, ctrlF, ctrlG, ctrlK,
+			case tab, cr, lf, ctrlA, ctrlB, ctrlD, ctrlE, ctrlF, ctrlK,
 				ctrlL, ctrlN, ctrlO, ctrlP, ctrlQ, ctrlT, ctrlU, ctrlV, ctrlW, ctrlX, ctrlY, ctrlZ:
 				fallthrough
 			case 0, ctrlC, esc, 28, 29, 30, 31:
