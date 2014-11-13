@@ -226,6 +226,17 @@ func (s *State) reverseISearch(origLine []rune, origPos int) ([]rune, int, inter
 				} else {
 					line = append(line[:pos-1], line[pos:]...)
 					pos--
+
+					// For each char deleted, display the last matching line of history
+					history, positions := s.getHistoryByPattern(string(line))
+					historyPos = len(history) - 1
+					if len(history) > 0 {
+						foundLine = history[historyPos]
+						foundPos = positions[historyPos]
+					} else {
+						foundLine = ""
+						foundPos = 0
+					}
 				}
 			case ctrlG: // Cancel
 				return origLine, origPos, esc, err
@@ -256,27 +267,7 @@ func (s *State) reverseISearch(origLine []rune, origPos int) ([]rune, int, inter
 				}
 			}
 		case action:
-			switch v {
-			case del:
-				if pos >= len(line) {
-					fmt.Print(beep)
-				} else {
-					line = append(line[:pos], line[pos+1:]...)
-
-					// For each char deleted, display the last matching line of history
-					history, positions := s.getHistoryByPattern(string(line))
-					historyPos = len(history) - 1
-					if len(history) > 0 {
-						foundLine = history[historyPos]
-						foundPos = positions[historyPos]
-					} else {
-						foundLine = ""
-						foundPos = 0
-					}
-				}
-			case left, wordLeft, right, wordRight, up, down, home, end:
-				return []rune(foundLine), foundPos, next, err
-			}
+			return []rune(foundLine), foundPos, next, err
 		}
 		s.refresh(getLine())
 	}

@@ -110,6 +110,9 @@ func (s *State) getHistoryByPrefix(prefix string) (ph []string) {
 
 // Returns the history lines matching the inteligent search
 func (s *State) getHistoryByPattern(pattern string) (ph []string, pos []int) {
+	if pattern == "" {
+		return
+	}
 	for _, h := range s.history {
 		if i := strings.Index(h, pattern); i >= 0 {
 			ph = append(ph, h)
