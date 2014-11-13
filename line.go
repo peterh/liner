@@ -3,6 +3,7 @@
 package liner
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"unicode"
@@ -555,6 +556,76 @@ mainLoop:
 		if !historyAction {
 			prefixHistory = s.getHistoryByPrefix(string(line))
 			historyPos = len(prefixHistory)
+		}
+	}
+	return string(line), nil
+}
+
+// PasswordPrompt displays p, and then waits for user input. The input types by
+// the user is not displayed in the terminal.
+func (s *State) PasswordPrompt(p string) (string, error) {
+	if !s.terminalOutput {
+		return "", errNotTerminalOutput
+	}
+	if !s.terminalSupported {
+		return "", errors.New("liner: function not supported in this terminal")
+	}
+
+	s.startPrompt()
+	s.getColumns()
+
+	fmt.Print(p)
+	var line []rune
+	pos := 0
+
+mainLoop:
+	for {
+		next, err := s.readNext()
+		if err != nil {
+			return "", err
+		}
+
+		switch v := next.(type) {
+		case rune:
+			switch v {
+			case cr, lf:
+				fmt.Println()
+				break mainLoop
+			case ctrlD: // del
+				if pos == 0 && len(line) == 0 {
+					// exit
+					return "", io.EOF
+				}
+
+				// ctrlD is a potential EOF, so the rune reader shuts down.
+				// Therefore, if it isn't actually an EOF, we must re-startPrompt.
+				s.startPrompt()
+			case ctrlL: // clear screen
+				s.eraseScreen()
+				s.refresh(p, "", 0)
+			case ctrlH, bs: // Backspace
+				if pos <= 0 {
+					fmt.Print(beep)
+				} else {
+					line = append(line[:pos-1], line[pos:]...)
+					pos--
+				}
+			// Unused keys
+			case esc, tab, ctrlA, ctrlB, ctrlE, ctrlF, ctrlG, ctrlK, ctrlN, ctrlO, ctrlP, ctrlQ, ctrlR, ctrlS,
+				ctrlT, ctrlU, ctrlV, ctrlW, ctrlX, ctrlY, ctrlZ:
+				fallthrough
+			// Catch unhandled control codes (anything <= 31)
+			case 0, ctrlC, 28, 29, 30, 31:
+				fmt.Print(beep)
+			default:
+				if pos == len(line) && len(p)+len(line) < s.columns {
+					line = append(line, v)
+					pos++
+				} else {
+					line = append(line[:pos], append([]rune{v}, line[pos:]...)...)
+					pos++
+				}
+			}
 		}
 	}
 	return string(line), nil
