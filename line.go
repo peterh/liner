@@ -247,13 +247,8 @@ func (s *State) reverseISearch(origLine []rune, origPos int) ([]rune, int, inter
 			case 0, ctrlC, esc, 28, 29, 30, 31:
 				return []rune(foundLine), foundPos, next, err
 			default:
-				if pos == len(line) && len(p)+len(line) < s.columns-1 {
-					line = append(line, v)
-					pos++
-				} else {
-					line = append(line[:pos], append([]rune{v}, line[pos:]...)...)
-					pos++
-				}
+				line = append(line[:pos], append([]rune{v}, line[pos:]...)...)
+				pos++
 
 				// For each keystroke typed, display the last matching line of history
 				history, positions = s.getHistoryByPattern(string(line))
