@@ -85,7 +85,7 @@ func (s *State) refresh(prompt string, buf string, pos int) error {
 
 	pLen := utf8.RuneCountInString(prompt)
 	bLen := utf8.RuneCountInString(buf)
-	if pLen+bLen <= s.columns {
+	if pLen+bLen < s.columns {
 		_, err = fmt.Print(buf)
 		s.eraseLine()
 		s.cursorPos(pLen + pos)
@@ -247,7 +247,7 @@ func (s *State) reverseISearch(origLine []rune, origPos int) ([]rune, int, inter
 			case 0, ctrlC, esc, 28, 29, 30, 31:
 				return []rune(foundLine), foundPos, next, err
 			default:
-				if pos == len(line) && len(p)+len(line) < s.columns {
+				if pos == len(line) && len(p)+len(line) < s.columns-1 {
 					line = append(line, v)
 					pos++
 				} else {
@@ -459,7 +459,7 @@ mainLoop:
 			case 0, ctrlC, 28, 29, 30, 31:
 				fmt.Print(beep)
 			default:
-				if pos == len(line) && len(p)+len(line) < s.columns {
+				if pos == len(line) && len(p)+len(line) < s.columns-1 {
 					line = append(line, v)
 					fmt.Printf("%c", v)
 					pos++
