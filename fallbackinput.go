@@ -5,6 +5,7 @@ package liner
 import (
 	"bufio"
 	"bytes"
+	"errors"
 	"fmt"
 	"os"
 )
@@ -24,6 +25,11 @@ func (s *State) Prompt(p string) (string, error) {
 		return "", err
 	}
 	return string(bytes.TrimSpace(linebuf)), nil
+}
+
+// PasswordPrompt is not supported in this OS.
+func (s *State) PasswordPrompt(p string) (string, error) {
+	return "", errors.New("liner: function not supported in this terminal")
 }
 
 // NewLiner initializes a new *State
