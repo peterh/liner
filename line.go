@@ -604,13 +604,8 @@ mainLoop:
 			case 0, ctrlC, 28, 29, 30, 31:
 				fmt.Print(beep)
 			default:
-				if pos == len(line) && len(p)+len(line) < s.columns {
-					line = append(line, v)
-					pos++
-				} else {
-					line = append(line[:pos], append([]rune{v}, line[pos:]...)...)
-					pos++
-				}
+				line = append(line[:pos], append([]rune{v}, line[pos:]...)...)
+				pos++
 			}
 		}
 	}
