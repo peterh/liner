@@ -7,6 +7,7 @@ package liner
 
 import (
 	"bufio"
+	"container/ring"
 	"errors"
 	"fmt"
 	"io"
@@ -22,9 +23,13 @@ type commonState struct {
 	historyMutex      sync.RWMutex
 	completer         WordCompleter
 	columns           int
+	killRing          *ring.Ring
 }
 
 var errNotTerminalOutput = errors.New("standard output is not a terminal")
+
+// Max elements to save on the killring
+const KillRingMax = 60
 
 // HistoryLimit is the maximum number of entries saved in the scrollback history.
 const HistoryLimit = 1000

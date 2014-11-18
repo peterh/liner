@@ -4,6 +4,7 @@ package liner
 
 import (
 	"errors"
+	"container/ring"
 	"fmt"
 	"io"
 	"unicode"
@@ -35,6 +36,7 @@ const (
 	f10
 	f11
 	f12
+	altY
 	shiftTab
 	wordLeft
 	wordRight
@@ -269,6 +271,78 @@ func (s *State) reverseISearch(origLine []rune, origPos int) ([]rune, int, inter
 	}
 }
 
+// addToKillRing adds some text to the kill ring. If mode is 0 it adds it to a
+// new node in the end of the kill ring, and move the current pointer to the new
+// node. If mode is 1 or 2 it appends or prepends the text to the current entry
+// of the killRing.
+func (s *State) addToKillRing(text []rune, mode int) {
+	// Don't use the same underlying array as text
+	killLine := make([]rune, len(text))
+	copy(killLine, text)
+
+	// Point killRing to a newNode, procedure depends on the killring state and
+	// append mode.
+	if mode == 0 { // Add new node to killRing
+		if s.killRing == nil { // if killring is empty, create a new one
+			s.killRing = ring.New(1)
+		} else if s.killRing.Len() >= KillRingMax { // if killring is "full"
+			s.killRing = s.killRing.Next()
+		} else { // Normal case
+			s.killRing.Link(ring.New(1))
+			s.killRing = s.killRing.Next()
+		}
+	} else {
+		if s.killRing == nil { // if killring is empty, create a new one
+			s.killRing = ring.New(1)
+			s.killRing.Value = []rune{}
+		}
+		if mode == 1 { // Append to last entry
+			killLine = append(s.killRing.Value.([]rune), killLine...)
+		} else if mode == 2 { // Prepend to last entry
+			killLine = append(killLine, s.killRing.Value.([]rune)...)
+		}
+	}
+
+	// Save text in the current killring node
+	s.killRing.Value = killLine
+}
+
+func (s *State) yank(p string, text []rune, pos int) ([]rune, int, interface{}, error) {
+	lineStart := text[:pos]
+	lineEnd := text[pos:]
+	var line []rune
+
+	for {
+		value := s.killRing.Value.([]rune)
+		line = make([]rune, 0)
+		line = append(line, lineStart...)
+		line = append(line, value...)
+		line = append(line, lineEnd...)
+
+		pos = len(lineStart) + len(value)
+		s.refresh(p, string(line), pos)
+
+		next, err := s.readNext()
+		if err != nil {
+			return line, pos, next, err
+		}
+
+		switch v := next.(type) {
+		case rune:
+			return line, pos, next, nil
+		case action:
+			switch v {
+			case altY:
+				s.killRing = s.killRing.Prev()
+			default:
+				return line, pos, next, nil
+			}
+		}
+	}
+
+	return line, pos, esc, nil
+}
+
 // Prompt displays p, and then waits for user input. Prompt allows line editing
 // if the terminal supports it.
 func (s *State) Prompt(p string) (string, error) {
@@ -292,6 +366,7 @@ func (s *State) Prompt(p string) (string, error) {
 	prefixHistory := s.getHistoryByPrefix(string(line))
 	historyPos := len(prefixHistory)
 	var historyAction bool // used to mark history related actions
+	var killAction int = 0 // used to mark kill related actions
 mainLoop:
 	for {
 		historyAction = false
@@ -307,6 +382,23 @@ mainLoop:
 				return "", err
 			}
 			s.refresh(p, string(line), pos)
+		}
+
+		// If the key is a CtrlY && killring is not empty do yank. If yank returns
+		// next == ctrlY keep looping. Then resume normal execution
+		cont := true
+		for cont {
+			if key, ok := next.(rune); ok && key == ctrlY && s.killRing != nil {
+				line, pos, next, err = s.yank(p, line, pos)
+				if err != nil {
+					return "", err
+				}
+				if key, ok := next.(rune); !ok || key != ctrlY {
+					cont = false
+				}
+			} else {
+				cont = false
+			}
 		}
 
 		// If the key is a CtrlR do reverse intelligent search, then resume execution
@@ -364,6 +456,13 @@ mainLoop:
 				if pos >= len(line) {
 					fmt.Print(beep)
 				} else {
+					if killAction > 0 {
+						s.addToKillRing(line[pos:], 1) // Add in apend mode
+					} else {
+						s.addToKillRing(line[pos:], 0) // Add in normal mode
+					}
+
+					killAction = 2 // Mark that there was a kill action
 					line = line[:pos]
 					s.refresh(p, string(line), pos)
 				}
@@ -417,6 +516,13 @@ mainLoop:
 					s.refresh(p, string(line), pos)
 				}
 			case ctrlU: // Erase line before cursor
+				if killAction > 0 {
+					s.addToKillRing(line[:pos], 2) // Add in prepend mode
+				} else {
+					s.addToKillRing(line[:pos], 0) // Add in normal mode
+				}
+
+				killAction = 2 // Mark that there was some killing
 				line = line[pos:]
 				pos = 0
 				s.refresh(p, string(line), pos)
@@ -426,10 +532,12 @@ mainLoop:
 					break
 				}
 				// Remove whitespace to the left
+				buf := make([]rune, 0) // Store the deleted chars in a buffer
 				for {
 					if pos == 0 || !unicode.IsSpace(line[pos-1]) {
 						break
 					}
+					buf = append(buf, line[pos-1])
 					line = append(line[:pos-1], line[pos:]...)
 					pos--
 				}
@@ -438,18 +546,31 @@ mainLoop:
 					if pos == 0 || unicode.IsSpace(line[pos-1]) {
 						break
 					}
+					buf = append(buf, line[pos-1])
 					line = append(line[:pos-1], line[pos:]...)
 					pos--
 				}
+				// Invert the buffer and save the result on the killRing
+				newBuf := make([]rune, 0)
+				for i := len(buf) - 1; i >= 0; i-- {
+					newBuf = append(newBuf, buf[i])
+				}
+				if killAction > 0 {
+					s.addToKillRing(newBuf, 2) // Add in prepend mode
+				} else {
+					s.addToKillRing(newBuf, 0) // Add in normal mode
+				}
+				killAction = 2 // Mark that there was some killing
+
 				s.refresh(p, string(line), pos)
 			// Catch keys that do nothing, but you don't want them to beep
 			case esc:
 				// DO NOTHING
 			// Catch keys that are handled before the switch
-			case tab, ctrlR:
+			case tab, ctrlR, ctrlY:
 				fallthrough
 			// Unused keys
-			case ctrlG, ctrlO, ctrlQ, ctrlS, ctrlV, ctrlX, ctrlY, ctrlZ:
+			case ctrlG, ctrlO, ctrlQ, ctrlS, ctrlV, ctrlX, ctrlZ:
 				fallthrough
 			// Catch unhandled control codes (anything <= 31)
 			case 0, ctrlC, 28, 29, 30, 31:
@@ -542,6 +663,9 @@ mainLoop:
 		if !historyAction {
 			prefixHistory = s.getHistoryByPrefix(string(line))
 			historyPos = len(prefixHistory)
+		}
+		if killAction > 0 {
+			killAction--
 		}
 	}
 	return string(line), nil

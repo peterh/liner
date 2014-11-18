@@ -127,6 +127,7 @@ const (
 	vk_f10    = 0x79
 	vk_f11    = 0x7a
 	vk_f12    = 0x7b
+	yKey      = 0x59
 )
 
 const (
@@ -172,6 +173,9 @@ func (s *State) readNext() (interface{}, error) {
 
 		if ke.VirtualKeyCode == vk_tab && ke.ControlKeyState&modKeys == shiftPressed {
 			s.key = shiftTab
+		} else if ke.VirtualKeyCode == yKey && (ke.ControlKeyState&modKeys == leftAltPressed ||
+			ke.ControlKeyState&modKeys == rightAltPressed) {
+			s.key = altY
 		} else if ke.Char > 0 {
 			s.key = rune(ke.Char)
 		} else {
