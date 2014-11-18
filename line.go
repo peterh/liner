@@ -3,8 +3,8 @@
 package liner
 
 import (
-	"errors"
 	"container/ring"
+	"errors"
 	"fmt"
 	"io"
 	"unicode"
@@ -671,7 +671,7 @@ mainLoop:
 	return string(line), nil
 }
 
-// PasswordPrompt displays p, and then waits for user input. The input types by
+// PasswordPrompt displays p, and then waits for user input. The input typed by
 // the user is not displayed in the terminal.
 func (s *State) PasswordPrompt(p string) (string, error) {
 	if !s.terminalOutput {
