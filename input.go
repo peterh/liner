@@ -26,7 +26,7 @@ type State struct {
 	r        *bufio.Reader
 	origMode termios
 	next     <-chan nexter
-	winch    chan os.Signal
+	sigchan  chan os.Signal
 	pending  []rune
 	useCHA   bool
 }
@@ -57,9 +57,10 @@ func NewLiner() *State {
 		mode.Lflag &^= syscall.ECHO | icanon | iexten
 		mode.ApplyMode()
 
-		winch := make(chan os.Signal, 1)
-		signal.Notify(winch, syscall.SIGWINCH)
-		s.winch = winch
+		sigchan := make(chan os.Signal, 1)
+		signal.Notify(sigchan, syscall.SIGWINCH)
+		signal.Notify(sigchan, os.Interrupt)
+		s.sigchan = sigchan
 
 		s.checkOutput()
 	}
@@ -125,9 +126,13 @@ func (s *State) readNext() (interface{}, error) {
 			return nil, thing.err
 		}
 		r = thing.r
-	case <-s.winch:
-		s.getColumns()
-		return winch, nil
+	case sig := <-s.sigchan:
+                if sig == os.Interrupt {
+                    return nil, errors.New("interrupted")
+                } else {
+		    s.getColumns()
+		    return winch, nil
+                }
 	}
 	if r != esc {
 		return r, nil
@@ -331,7 +336,7 @@ func (s *State) promptUnsupported(p string) (string, error) {
 
 // Close returns the terminal to its previous mode
 func (s *State) Close() error {
-	stopSignal(s.winch)
+	stopSignal(s.sigchan)
 	if s.terminalSupported {
 		s.origMode.ApplyMode()
 	}
