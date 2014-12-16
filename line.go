@@ -79,17 +79,17 @@ const (
 	beep = "\a"
 )
 
-func (s *State) refresh(prompt string, buf string, pos int) error {
+func (s *State) refresh(prompt []rune, buf []rune, pos int) error {
 	s.cursorPos(0)
-	_, err := fmt.Print(prompt)
+	_, err := fmt.Print(string(prompt))
 	if err != nil {
 		return err
 	}
 
-	pLen := utf8.RuneCountInString(prompt)
-	bLen := utf8.RuneCountInString(buf)
+	pLen := len(prompt)
+	bLen := len(buf)
 	if pLen+bLen < s.columns {
-		_, err = fmt.Print(buf)
+		_, err = fmt.Print(string(buf))
 		s.eraseLine()
 		s.cursorPos(pLen + pos)
 	} else {
@@ -115,8 +115,7 @@ func (s *State) refresh(prompt string, buf string, pos int) error {
 		if end < bLen {
 			end--
 		}
-		line := []rune(buf)
-		line = line[start:end]
+		line := buf[start:end]
 
 		// Output
 		if start > 0 {
@@ -134,7 +133,7 @@ func (s *State) refresh(prompt string, buf string, pos int) error {
 	return err
 }
 
-func (s *State) tabComplete(p string, line []rune, pos int) ([]rune, int, interface{}, error) {
+func (s *State) tabComplete(p []rune, line []rune, pos int) ([]rune, int, interface{}, error) {
 	if s.completer == nil {
 		return line, pos, rune(tab), nil
 	}
@@ -146,7 +145,7 @@ func (s *State) tabComplete(p string, line []rune, pos int) ([]rune, int, interf
 	hl := utf8.RuneCountInString(head)
 	for {
 		pick := list[listEntry]
-		s.refresh(p, head+pick+tail, hl+utf8.RuneCountInString(pick))
+		s.refresh(p, []rune(head+pick+tail), hl+utf8.RuneCountInString(pick))
 
 		next, err := s.readNext()
 		if err != nil {
@@ -182,17 +181,17 @@ func (s *State) tabComplete(p string, line []rune, pos int) ([]rune, int, interf
 // reverse intelligent search, implements a bash-like history search.
 func (s *State) reverseISearch(origLine []rune, origPos int) ([]rune, int, interface{}, error) {
 	p := "(reverse-i-search)`': "
-	s.refresh(p, string(origLine), origPos)
+	s.refresh([]rune(p), origLine, origPos)
 
 	line := []rune{}
 	pos := 0
 	var foundLine string
 	var foundPos int
 
-	getLine := func() (string, string, int) {
+	getLine := func() ([]rune, []rune, int) {
 		search := string(line)
 		prompt := "(reverse-i-search)`%s': "
-		return fmt.Sprintf(prompt, search), foundLine, foundPos
+		return []rune(fmt.Sprintf(prompt, search)), []rune(foundLine), foundPos
 	}
 
 	history, positions := s.getHistoryByPattern(string(line))
@@ -307,7 +306,7 @@ func (s *State) addToKillRing(text []rune, mode int) {
 	s.killRing.Value = killLine
 }
 
-func (s *State) yank(p string, text []rune, pos int) ([]rune, int, interface{}, error) {
+func (s *State) yank(p []rune, text []rune, pos int) ([]rune, int, interface{}, error) {
 	lineStart := text[:pos]
 	lineEnd := text[pos:]
 	var line []rune
@@ -320,7 +319,7 @@ func (s *State) yank(p string, text []rune, pos int) ([]rune, int, interface{}, 
 		line = append(line, lineEnd...)
 
 		pos = len(lineStart) + len(value)
-		s.refresh(p, string(line), pos)
+		s.refresh(p, line, pos)
 
 		next, err := s.readNext()
 		if err != nil {
@@ -345,12 +344,12 @@ func (s *State) yank(p string, text []rune, pos int) ([]rune, int, interface{}, 
 
 // Prompt displays p, and then waits for user input. Prompt allows line editing
 // if the terminal supports it.
-func (s *State) Prompt(p string) (string, error) {
+func (s *State) Prompt(prompt string) (string, error) {
 	if !s.terminalOutput {
 		return "", errNotTerminalOutput
 	}
 	if !s.terminalSupported {
-		return s.promptUnsupported(p)
+		return s.promptUnsupported(prompt)
 	}
 
 	s.historyMutex.RLock()
@@ -359,7 +358,8 @@ func (s *State) Prompt(p string) (string, error) {
 	s.startPrompt()
 	s.getColumns()
 
-	fmt.Print(p)
+	fmt.Print(prompt)
+	p := []rune(prompt)
 	var line []rune
 	pos := 0
 	var historyEnd string
@@ -381,7 +381,7 @@ mainLoop:
 			if err != nil {
 				return "", err
 			}
-			s.refresh(p, string(line), pos)
+			s.refresh(p, line, pos)
 		}
 
 		// If the key is a CtrlY && killring is not empty do yank. If yank returns
@@ -407,7 +407,7 @@ mainLoop:
 			if err != nil {
 				return "", err
 			}
-			s.refresh(p, string(line), pos)
+			s.refresh(p, line, pos)
 		}
 
 		switch v := next.(type) {
@@ -418,21 +418,21 @@ mainLoop:
 				break mainLoop
 			case ctrlA: // Start of line
 				pos = 0
-				s.refresh(p, string(line), pos)
+				s.refresh(p, line, pos)
 			case ctrlE: // End of line
 				pos = len(line)
-				s.refresh(p, string(line), pos)
+				s.refresh(p, line, pos)
 			case ctrlB: // left
 				if pos > 0 {
 					pos--
-					s.refresh(p, string(line), pos)
+					s.refresh(p, line, pos)
 				} else {
 					fmt.Print(beep)
 				}
 			case ctrlF: // right
 				if pos < len(line) {
 					pos++
-					s.refresh(p, string(line), pos)
+					s.refresh(p, line, pos)
 				} else {
 					fmt.Print(beep)
 				}
@@ -450,7 +450,7 @@ mainLoop:
 					fmt.Print(beep)
 				} else {
 					line = append(line[:pos], line[pos+1:]...)
-					s.refresh(p, string(line), pos)
+					s.refresh(p, line, pos)
 				}
 			case ctrlK: // delete remainder of line
 				if pos >= len(line) {
@@ -464,7 +464,7 @@ mainLoop:
 
 					killAction = 2 // Mark that there was a kill action
 					line = line[:pos]
-					s.refresh(p, string(line), pos)
+					s.refresh(p, line, pos)
 				}
 			case ctrlP: // up
 				historyAction = true
@@ -475,7 +475,7 @@ mainLoop:
 					historyPos--
 					line = []rune(prefixHistory[historyPos])
 					pos = len(line)
-					s.refresh(p, string(line), pos)
+					s.refresh(p, line, pos)
 				} else {
 					fmt.Print(beep)
 				}
@@ -489,7 +489,7 @@ mainLoop:
 						line = []rune(prefixHistory[historyPos])
 					}
 					pos = len(line)
-					s.refresh(p, string(line), pos)
+					s.refresh(p, line, pos)
 				} else {
 					fmt.Print(beep)
 				}
@@ -502,18 +502,18 @@ mainLoop:
 					}
 					line[pos-1], line[pos] = line[pos], line[pos-1]
 					pos++
-					s.refresh(p, string(line), pos)
+					s.refresh(p, line, pos)
 				}
 			case ctrlL: // clear screen
 				s.eraseScreen()
-				s.refresh(p, string(line), pos)
+				s.refresh(p, line, pos)
 			case ctrlH, bs: // Backspace
 				if pos <= 0 {
 					fmt.Print(beep)
 				} else {
 					line = append(line[:pos-1], line[pos:]...)
 					pos--
-					s.refresh(p, string(line), pos)
+					s.refresh(p, line, pos)
 				}
 			case ctrlU: // Erase line before cursor
 				if killAction > 0 {
@@ -525,7 +525,7 @@ mainLoop:
 				killAction = 2 // Mark that there was some killing
 				line = line[pos:]
 				pos = 0
-				s.refresh(p, string(line), pos)
+				s.refresh(p, line, pos)
 			case ctrlW: // Erase word
 				if pos == 0 {
 					fmt.Print(beep)
@@ -562,7 +562,7 @@ mainLoop:
 				}
 				killAction = 2 // Mark that there was some killing
 
-				s.refresh(p, string(line), pos)
+				s.refresh(p, line, pos)
 			// Catch keys that do nothing, but you don't want them to beep
 			case esc:
 				// DO NOTHING
@@ -583,7 +583,7 @@ mainLoop:
 				} else {
 					line = append(line[:pos], append([]rune{v}, line[pos:]...)...)
 					pos++
-					s.refresh(p, string(line), pos)
+					s.refresh(p, line, pos)
 				}
 			}
 		case action:
@@ -658,7 +658,7 @@ mainLoop:
 			case end: // End of line
 				pos = len(line)
 			}
-			s.refresh(p, string(line), pos)
+			s.refresh(p, line, pos)
 		}
 		if !historyAction {
 			prefixHistory = s.getHistoryByPrefix(string(line))
@@ -673,7 +673,7 @@ mainLoop:
 
 // PasswordPrompt displays p, and then waits for user input. The input typed by
 // the user is not displayed in the terminal.
-func (s *State) PasswordPrompt(p string) (string, error) {
+func (s *State) PasswordPrompt(prompt string) (string, error) {
 	if !s.terminalOutput {
 		return "", errNotTerminalOutput
 	}
@@ -684,7 +684,8 @@ func (s *State) PasswordPrompt(p string) (string, error) {
 	s.startPrompt()
 	s.getColumns()
 
-	fmt.Print(p)
+	fmt.Print(prompt)
+	p := []rune(prompt)
 	var line []rune
 	pos := 0
 
@@ -712,7 +713,7 @@ mainLoop:
 				s.startPrompt()
 			case ctrlL: // clear screen
 				s.eraseScreen()
-				s.refresh(p, "", 0)
+				s.refresh(p, []rune{}, 0)
 			case ctrlH, bs: // Backspace
 				if pos <= 0 {
 					fmt.Print(beep)
