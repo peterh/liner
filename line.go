@@ -86,8 +86,9 @@ func (s *State) refresh(prompt []rune, buf []rune, pos int) error {
 		return err
 	}
 
-	pLen := len(prompt)
-	bLen := len(buf)
+	pLen := countGlyphs(prompt)
+	bLen := countGlyphs(buf)
+	pos = countGlyphs(buf[:pos])
 	if pLen+bLen < s.columns {
 		_, err = fmt.Print(string(buf))
 		s.eraseLine()
@@ -115,7 +116,8 @@ func (s *State) refresh(prompt []rune, buf []rune, pos int) error {
 		if end < bLen {
 			end--
 		}
-		line := buf[start:end]
+		startRune := len(getPrefixGlyphs(buf, start))
+		line := getPrefixGlyphs(buf[startRune:], end-start)
 
 		// Output
 		if start > 0 {
@@ -226,8 +228,9 @@ func (s *State) reverseISearch(origLine []rune, origPos int) ([]rune, int, inter
 				if pos <= 0 {
 					fmt.Print(beep)
 				} else {
-					line = append(line[:pos-1], line[pos:]...)
-					pos--
+					n := len(getSuffixGlyphs(line[:pos], 1))
+					line = append(line[:pos-n], line[pos:]...)
+					pos -= n
 
 					// For each char deleted, display the last matching line of history
 					history, positions := s.getHistoryByPattern(string(line))
@@ -424,14 +427,14 @@ mainLoop:
 				s.refresh(p, line, pos)
 			case ctrlB: // left
 				if pos > 0 {
-					pos--
+					pos -= len(getSuffixGlyphs(line[:pos], 1))
 					s.refresh(p, line, pos)
 				} else {
 					fmt.Print(beep)
 				}
 			case ctrlF: // right
 				if pos < len(line) {
-					pos++
+					pos += len(getPrefixGlyphs(line[pos:], 1))
 					s.refresh(p, line, pos)
 				} else {
 					fmt.Print(beep)
@@ -449,7 +452,8 @@ mainLoop:
 				if pos >= len(line) {
 					fmt.Print(beep)
 				} else {
-					line = append(line[:pos], line[pos+1:]...)
+					n := len(getPrefixGlyphs(line[pos:], 1))
+					line = append(line[:pos], line[pos+n:]...)
 					s.refresh(p, line, pos)
 				}
 			case ctrlK: // delete remainder of line
@@ -493,15 +497,20 @@ mainLoop:
 				} else {
 					fmt.Print(beep)
 				}
-			case ctrlT: // transpose prev rune with rune under cursor
+			case ctrlT: // transpose prev glyph with glyph under cursor
 				if len(line) < 2 || pos < 1 {
 					fmt.Print(beep)
 				} else {
 					if pos == len(line) {
-						pos--
+						pos -= len(getSuffixGlyphs(line, 1))
 					}
-					line[pos-1], line[pos] = line[pos], line[pos-1]
-					pos++
+					prev := getSuffixGlyphs(line[:pos], 1)
+					next := getPrefixGlyphs(line[pos:], 1)
+					scratch := make([]rune, len(prev))
+					copy(scratch, prev)
+					copy(line[pos-len(prev):], next)
+					copy(line[pos-len(prev)+len(next):], scratch)
+					pos += len(next)
 					s.refresh(p, line, pos)
 				}
 			case ctrlL: // clear screen
@@ -511,8 +520,9 @@ mainLoop:
 				if pos <= 0 {
 					fmt.Print(beep)
 				} else {
-					line = append(line[:pos-1], line[pos:]...)
-					pos--
+					n := len(getSuffixGlyphs(line[:pos], 1))
+					line = append(line[:pos-n], line[pos:]...)
+					pos -= n
 					s.refresh(p, line, pos)
 				}
 			case ctrlU: // Erase line before cursor
@@ -592,11 +602,12 @@ mainLoop:
 				if pos >= len(line) {
 					fmt.Print(beep)
 				} else {
-					line = append(line[:pos], line[pos+1:]...)
+					n := len(getPrefixGlyphs(line[pos:], 1))
+					line = append(line[:pos], line[pos+n:]...)
 				}
 			case left:
 				if pos > 0 {
-					pos--
+					pos -= len(getSuffixGlyphs(line[:pos], 1))
 				} else {
 					fmt.Print(beep)
 				}
@@ -613,7 +624,7 @@ mainLoop:
 				}
 			case right:
 				if pos < len(line) {
-					pos++
+					pos += len(getPrefixGlyphs(line[pos:], 1))
 				} else {
 					fmt.Print(beep)
 				}
@@ -718,8 +729,9 @@ mainLoop:
 				if pos <= 0 {
 					fmt.Print(beep)
 				} else {
-					line = append(line[:pos-1], line[pos:]...)
-					pos--
+					n := len(getSuffixGlyphs(line[:pos], 1))
+					line = append(line[:pos-n], line[pos:]...)
+					pos -= n
 				}
 			// Unused keys
 			case esc, tab, ctrlA, ctrlB, ctrlE, ctrlF, ctrlG, ctrlK, ctrlN, ctrlO, ctrlP, ctrlQ, ctrlR, ctrlS,
