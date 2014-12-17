@@ -187,8 +187,8 @@ func (s *State) reverseISearch(origLine []rune, origPos int) ([]rune, int, inter
 
 	line := []rune{}
 	pos := 0
-	var foundLine string
-	var foundPos int
+	foundLine := string(origLine)
+	foundPos := origPos
 
 	getLine := func() ([]rune, []rune, int) {
 		search := string(line)
