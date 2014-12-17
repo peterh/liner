@@ -137,11 +137,11 @@ func (s *State) refresh(prompt []rune, buf []rune, pos int) error {
 
 func (s *State) tabComplete(p []rune, line []rune, pos int) ([]rune, int, interface{}, error) {
 	if s.completer == nil {
-		return line, pos, rune(tab), nil
+		return line, pos, rune(esc), nil
 	}
 	head, list, tail := s.completer(string(line), pos)
 	if len(list) <= 0 {
-		return line, pos, rune(tab), nil
+		return line, pos, rune(esc), nil
 	}
 	listEntry := 0
 	hl := utf8.RuneCountInString(head)
@@ -151,7 +151,7 @@ func (s *State) tabComplete(p []rune, line []rune, pos int) ([]rune, int, interf
 
 		next, err := s.readNext()
 		if err != nil {
-			return line, pos, rune(tab), err
+			return line, pos, rune(esc), err
 		}
 		if key, ok := next.(rune); ok {
 			if key == tab {
@@ -177,7 +177,7 @@ func (s *State) tabComplete(p []rune, line []rune, pos int) ([]rune, int, interf
 		return []rune(head + pick + tail), hl + utf8.RuneCountInString(pick), next, nil
 	}
 	// Not reached
-	return line, pos, rune(tab), nil
+	return line, pos, rune(esc), nil
 }
 
 // reverse intelligent search, implements a bash-like history search.
@@ -202,7 +202,7 @@ func (s *State) reverseISearch(origLine []rune, origPos int) ([]rune, int, inter
 	for {
 		next, err := s.readNext()
 		if err != nil {
-			return []rune(foundLine), foundPos, esc, err
+			return []rune(foundLine), foundPos, rune(esc), err
 		}
 
 		switch v := next.(type) {
@@ -244,7 +244,7 @@ func (s *State) reverseISearch(origLine []rune, origPos int) ([]rune, int, inter
 					}
 				}
 			case ctrlG: // Cancel
-				return origLine, origPos, esc, err
+				return origLine, origPos, rune(esc), err
 
 			case tab, cr, lf, ctrlA, ctrlB, ctrlD, ctrlE, ctrlF, ctrlK,
 				ctrlL, ctrlN, ctrlO, ctrlP, ctrlQ, ctrlT, ctrlU, ctrlV, ctrlW, ctrlX, ctrlY, ctrlZ:
@@ -310,6 +310,10 @@ func (s *State) addToKillRing(text []rune, mode int) {
 }
 
 func (s *State) yank(p []rune, text []rune, pos int) ([]rune, int, interface{}, error) {
+	if s.killRing == nil {
+		return text, pos, rune(esc), nil
+	}
+
 	lineStart := text[:pos]
 	lineEnd := text[pos:]
 	var line []rune
@@ -372,47 +376,13 @@ func (s *State) Prompt(prompt string) (string, error) {
 	var killAction int = 0 // used to mark kill related actions
 mainLoop:
 	for {
-		historyAction = false
 		next, err := s.readNext()
+	haveNext:
 		if err != nil {
 			return "", err
 		}
 
-		// If the key is a tab do autocomplete, and then resume execution as usual
-		if key, ok := next.(rune); ok && key == tab {
-			line, pos, next, err = s.tabComplete(p, line, pos)
-			if err != nil {
-				return "", err
-			}
-			s.refresh(p, line, pos)
-		}
-
-		// If the key is a CtrlY && killring is not empty do yank. If yank returns
-		// next == ctrlY keep looping. Then resume normal execution
-		cont := true
-		for cont {
-			if key, ok := next.(rune); ok && key == ctrlY && s.killRing != nil {
-				line, pos, next, err = s.yank(p, line, pos)
-				if err != nil {
-					return "", err
-				}
-				if key, ok := next.(rune); !ok || key != ctrlY {
-					cont = false
-				}
-			} else {
-				cont = false
-			}
-		}
-
-		// If the key is a CtrlR do reverse intelligent search, then resume execution
-		if key, ok := next.(rune); ok && key == ctrlR {
-			line, pos, next, err = s.reverseISearch(line, pos)
-			if err != nil {
-				return "", err
-			}
-			s.refresh(p, line, pos)
-		}
-
+		historyAction = false
 		switch v := next.(type) {
 		case rune:
 			switch v {
@@ -573,12 +543,19 @@ mainLoop:
 				killAction = 2 // Mark that there was some killing
 
 				s.refresh(p, line, pos)
+			case ctrlY: // Paste from Yank buffer
+				line, pos, next, err = s.yank(p, line, pos)
+				goto haveNext
+			case ctrlR: // Reverse Search
+				line, pos, next, err = s.reverseISearch(line, pos)
+				s.refresh(p, line, pos)
+				goto haveNext
+			case tab: // Tab completion
+				line, pos, next, err = s.tabComplete(p, line, pos)
+				goto haveNext
 			// Catch keys that do nothing, but you don't want them to beep
 			case esc:
 				// DO NOTHING
-			// Catch keys that are handled before the switch
-			case tab, ctrlR, ctrlY:
-				fallthrough
 			// Unused keys
 			case ctrlG, ctrlO, ctrlQ, ctrlS, ctrlV, ctrlX, ctrlZ:
 				fallthrough
