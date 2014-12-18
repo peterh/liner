@@ -34,6 +34,7 @@ Ctrl-U       | Delete from start of line to cursor
 Ctrl-P, Up   | Previous match from history
 Ctrl-N, Down | Next match from history
 Ctrl-R       | Reverse Search history (Ctrl-S forward, Ctrl-G cancel)
+Ctrl-Y       | Paste from Yank buffer (Alt-Y to paste next yank instead)
 Tab          | Next completion
 Shift-Tab    | (after Tab) Previous completion
 
