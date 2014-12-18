@@ -363,6 +363,7 @@ func (s *State) Prompt(prompt string) (string, error) {
 	defer s.historyMutex.RUnlock()
 
 	s.startPrompt()
+	defer s.stopPrompt()
 	s.getColumns()
 
 	fmt.Print(prompt)
@@ -417,7 +418,7 @@ mainLoop:
 
 				// ctrlD is a potential EOF, so the rune reader shuts down.
 				// Therefore, if it isn't actually an EOF, we must re-startPrompt.
-				s.startPrompt()
+				s.restartPrompt()
 
 				if pos >= len(line) {
 					fmt.Print(beep)
@@ -486,6 +487,11 @@ mainLoop:
 			case ctrlL: // clear screen
 				s.eraseScreen()
 				s.refresh(p, line, pos)
+			case ctrlC: // reset
+				fmt.Println()
+				line = line[:0]
+				pos = 0
+				fmt.Print(prompt)
 			case ctrlH, bs: // Backspace
 				if pos <= 0 {
 					fmt.Print(beep)
@@ -560,7 +566,7 @@ mainLoop:
 			case ctrlG, ctrlO, ctrlQ, ctrlS, ctrlV, ctrlX, ctrlZ:
 				fallthrough
 			// Catch unhandled control codes (anything <= 31)
-			case 0, ctrlC, 28, 29, 30, 31:
+			case 0, 28, 29, 30, 31:
 				fmt.Print(beep)
 			default:
 				if pos == len(line) && len(p)+len(line) < s.columns-1 {
@@ -670,6 +676,7 @@ func (s *State) PasswordPrompt(prompt string) (string, error) {
 	}
 
 	s.startPrompt()
+	defer s.stopPrompt()
 	s.getColumns()
 
 	fmt.Print(prompt)
@@ -698,7 +705,7 @@ mainLoop:
 
 				// ctrlD is a potential EOF, so the rune reader shuts down.
 				// Therefore, if it isn't actually an EOF, we must re-startPrompt.
-				s.startPrompt()
+				s.restartPrompt()
 			case ctrlL: // clear screen
 				s.eraseScreen()
 				s.refresh(p, []rune{}, 0)
@@ -710,12 +717,17 @@ mainLoop:
 					line = append(line[:pos-n], line[pos:]...)
 					pos -= n
 				}
+			case ctrlC:
+				fmt.Println()
+				line = line[:0]
+				pos = 0
+				fmt.Print(prompt)
 			// Unused keys
 			case esc, tab, ctrlA, ctrlB, ctrlE, ctrlF, ctrlG, ctrlK, ctrlN, ctrlO, ctrlP, ctrlQ, ctrlR, ctrlS,
 				ctrlT, ctrlU, ctrlV, ctrlW, ctrlX, ctrlY, ctrlZ:
 				fallthrough
 			// Catch unhandled control codes (anything <= 31)
-			case 0, ctrlC, 28, 29, 30, 31:
+			case 0, 28, 29, 30, 31:
 				fmt.Print(beep)
 			default:
 				line = append(line[:pos], append([]rune{v}, line[pos:]...)...)

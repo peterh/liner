@@ -32,11 +32,12 @@ type inputMode uint32
 // State represents an open terminal
 type State struct {
 	commonState
-	handle   syscall.Handle
-	hOut     syscall.Handle
-	origMode inputMode
-	key      interface{}
-	repeat   uint16
+	handle      syscall.Handle
+	hOut        syscall.Handle
+	origMode    inputMode
+	defaultMode inputMode
+	key         interface{}
+	repeat      uint16
 }
 
 const (
@@ -261,6 +262,19 @@ func (s *State) Close() error {
 }
 
 func (s *State) startPrompt() {
+	if m, err := TerminalMode(); err == nil {
+		s.defaultMode = m.(inputMode)
+		mode := s.defaultMode
+		mode &^= enableProcessedInput
+		mode.ApplyMode()
+	}
+}
+
+func (s *State) restartPrompt() {
+}
+
+func (s *State) stopPrompt() {
+	s.defaultMode.ApplyMode()
 }
 
 // TerminalSupported returns true because line editing is always

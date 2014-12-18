@@ -23,6 +23,7 @@ const (
 	cs8 = 0x300
 
 	// Local flags
+	isig   = 0x080
 	icanon = 0x100
 	iexten = 0x400
 )

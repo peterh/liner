@@ -25,6 +25,7 @@ Ctrl-Left    | Move cursor to previous word
 Ctrl-Right   | Move cursor to next word
 Ctrl-D, Del  | (if line is *not* empty) Delete character under cursor
 Ctrl-D       | (if line *is* empty) End of File - usually quits application
+Ctrl-C       | Reset input (create new empty prompt)
 Ctrl-L       | Clear screen (line is unmodified)
 Ctrl-T       | Transpose previous character with current character
 Ctrl-H, BackSpace | Delete character before cursor

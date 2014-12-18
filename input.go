@@ -23,12 +23,13 @@ type nexter struct {
 // State represents an open terminal
 type State struct {
 	commonState
-	r        *bufio.Reader
-	origMode termios
-	next     <-chan nexter
-	winch    chan os.Signal
-	pending  []rune
-	useCHA   bool
+	r           *bufio.Reader
+	origMode    termios
+	defaultMode termios
+	next        <-chan nexter
+	winch       chan os.Signal
+	pending     []rune
+	useCHA      bool
 }
 
 // NewLiner initializes a new *State, and sets the terminal into raw mode. To
@@ -73,6 +74,18 @@ func NewLiner() *State {
 var errTimedOut = errors.New("timeout")
 
 func (s *State) startPrompt() {
+	if s.terminalSupported {
+		if m, err := TerminalMode(); err == nil {
+			s.defaultMode = *m.(*termios)
+			mode := s.defaultMode
+			mode.Lflag &^= isig
+			mode.ApplyMode()
+		}
+	}
+	s.restartPrompt()
+}
+
+func (s *State) restartPrompt() {
 	next := make(chan nexter)
 	go func() {
 		for {
@@ -87,6 +100,12 @@ func (s *State) startPrompt() {
 		}
 	}()
 	s.next = next
+}
+
+func (s *State) stopPrompt() {
+	if s.terminalSupported {
+		s.defaultMode.ApplyMode()
+	}
 }
 
 func (s *State) nextPending(timeout <-chan time.Time) (rune, error) {

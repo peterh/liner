@@ -16,6 +16,7 @@ const (
 	ixon   = syscall.IXON
 	opost  = syscall.OPOST
 	cs8    = syscall.CS8
+	isig   = syscall.ISIG
 	icanon = syscall.ICANON
 	iexten = syscall.IEXTEN
 )
