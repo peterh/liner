@@ -352,6 +352,20 @@ func (s *State) yank(p []rune, text []rune, pos int) ([]rune, int, interface{}, 
 // Prompt displays p, and then waits for user input. Prompt allows line editing
 // if the terminal supports it.
 func (s *State) Prompt(prompt string) (string, error) {
+	err := ErrPromptAborted 
+	line := ""
+
+	for err == ErrPromptAborted {
+		line, err = s.AbortablePrompt(prompt, "")
+	}
+
+	return line, err
+}
+
+// AbortablePrompt displays p, and then waits for user input. If the user
+// presses Ctrl-C AbortablePrompt returns ErrPromptAborted. AbortablePrompt
+// allows line editing if the terminal supports it.
+func (s *State) AbortablePrompt(prompt, aborted string) (string, error) {
 	if !s.terminalOutput {
 		return "", errNotTerminalOutput
 	}
@@ -391,7 +405,7 @@ mainLoop:
 			case ctrlC: // reset
 				line = line[:0]
 				status = ErrPromptAborted
-				fmt.Print("^C")
+				fmt.Print(aborted)
 				fallthrough
 			case cr, lf:
 				fmt.Println()
