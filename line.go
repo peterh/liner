@@ -375,6 +375,7 @@ func (s *State) Prompt(prompt string) (string, error) {
 	historyPos := len(prefixHistory)
 	var historyAction bool // used to mark history related actions
 	var killAction int = 0 // used to mark kill related actions
+	var status error = nil
 mainLoop:
 	for {
 		next, err := s.readNext()
@@ -387,6 +388,11 @@ mainLoop:
 		switch v := next.(type) {
 		case rune:
 			switch v {
+			case ctrlC: // reset
+				line = line[:0]
+				status = ErrPromptAborted
+				fmt.Print("^C")
+				fallthrough
 			case cr, lf:
 				fmt.Println()
 				break mainLoop
@@ -487,11 +493,6 @@ mainLoop:
 			case ctrlL: // clear screen
 				s.eraseScreen()
 				s.refresh(p, line, pos)
-			case ctrlC: // reset
-				fmt.Println()
-				line = line[:0]
-				pos = 0
-				fmt.Print(prompt)
 			case ctrlH, bs: // Backspace
 				if pos <= 0 {
 					fmt.Print(beep)
@@ -662,7 +663,7 @@ mainLoop:
 			killAction--
 		}
 	}
-	return string(line), nil
+	return string(line), status
 }
 
 // PasswordPrompt displays p, and then waits for user input. The input typed by

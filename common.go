@@ -26,6 +26,7 @@ type commonState struct {
 	killRing          *ring.Ring
 }
 
+var ErrPromptAborted = errors.New("prompt aborted")
 var errNotTerminalOutput = errors.New("standard output is not a terminal")
 
 // Max elements to save on the killring
