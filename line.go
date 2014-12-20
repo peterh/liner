@@ -370,11 +370,11 @@ func (s *State) Prompt(prompt string) (string, error) {
 	p := []rune(prompt)
 	var line []rune
 	pos := 0
-	var historyEnd string
+	historyEnd := ""
 	prefixHistory := s.getHistoryByPrefix(string(line))
 	historyPos := len(prefixHistory)
-	var historyAction bool // used to mark history related actions
-	var killAction int = 0 // used to mark kill related actions
+	historyAction := false // used to mark history related actions
+	killAction := 0        // used to mark kill related actions
 mainLoop:
 	for {
 		next, err := s.readNext()
@@ -518,7 +518,7 @@ mainLoop:
 					break
 				}
 				// Remove whitespace to the left
-				buf := make([]rune, 0) // Store the deleted chars in a buffer
+				var buf []rune // Store the deleted chars in a buffer
 				for {
 					if pos == 0 || !unicode.IsSpace(line[pos-1]) {
 						break
@@ -537,7 +537,7 @@ mainLoop:
 					pos--
 				}
 				// Invert the buffer and save the result on the killRing
-				newBuf := make([]rune, 0)
+				var newBuf []rune
 				for i := len(buf) - 1; i >= 0; i-- {
 					newBuf = append(newBuf, buf[i])
 				}
