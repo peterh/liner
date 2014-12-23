@@ -489,9 +489,13 @@ mainLoop:
 				s.refresh(p, line, pos)
 			case ctrlC: // reset
 				fmt.Println("^C")
+				if s.ctrlCAborts {
+					return "", ErrPromptAborted
+				}
 				line = line[:0]
 				pos = 0
 				fmt.Print(prompt)
+				s.restartPrompt()
 			case ctrlH, bs: // Backspace
 				if pos <= 0 {
 					fmt.Print(beep)

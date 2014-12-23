@@ -24,8 +24,12 @@ type commonState struct {
 	completer         WordCompleter
 	columns           int
 	killRing          *ring.Ring
+	ctrlCAborts       bool
 }
 
+// ErrPromptAborted is returned from Prompt when the user presses Ctrl-C
+// if SetCtrlCAborts(true) has been called on the State
+var ErrPromptAborted = errors.New("prompt aborted")
 var errNotTerminalOutput = errors.New("standard output is not a terminal")
 
 // Max elements to save on the killring
@@ -161,4 +165,12 @@ func (s *State) SetWordCompleter(f WordCompleter) {
 // mode. ApplyMode sets the terminal to this mode.
 type ModeApplier interface {
 	ApplyMode() error
+}
+
+// SetCtrlCAborts sets whether Prompt on a supported terminal will return an
+// ErrPromptAborted when Ctrl-C is pressed. The default is false (will not
+// return when Ctrl-C is pressed). Unsupported terminals typically raise SIGINT
+// (and Prompt does not return) regardless of the value passed to SetCtrlCAborts.
+func (s *State) SetCtrlCAborts(aborts bool) {
+	s.ctrlCAborts = aborts
 }
