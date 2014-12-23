@@ -488,7 +488,7 @@ mainLoop:
 				s.eraseScreen()
 				s.refresh(p, line, pos)
 			case ctrlC: // reset
-				fmt.Println()
+				fmt.Println("^C")
 				line = line[:0]
 				pos = 0
 				fmt.Print(prompt)
