@@ -722,10 +722,14 @@ mainLoop:
 					pos -= n
 				}
 			case ctrlC:
-				fmt.Println()
+				fmt.Println("^C")
+				if s.ctrlCAborts {
+					return "", ErrPromptAborted
+				}
 				line = line[:0]
 				pos = 0
 				fmt.Print(prompt)
+				s.restartPrompt()
 			// Unused keys
 			case esc, tab, ctrlA, ctrlB, ctrlE, ctrlF, ctrlG, ctrlK, ctrlN, ctrlO, ctrlP, ctrlQ, ctrlR, ctrlS,
 				ctrlT, ctrlU, ctrlV, ctrlW, ctrlX, ctrlY, ctrlZ:
