@@ -72,7 +72,7 @@ func NewLiner() *State {
 	}
 
 	s.getColumns()
-	s.terminalOutput = s.columns > 0
+	s.outputRedirected = s.columns <= 0
 
 	return &s
 }

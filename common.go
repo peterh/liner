@@ -18,7 +18,7 @@ import (
 
 type commonState struct {
 	terminalSupported bool
-	terminalOutput    bool
+	outputRedirected  bool
 	history           []string
 	historyMutex      sync.RWMutex
 	completer         WordCompleter
