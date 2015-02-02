@@ -1,6 +1,8 @@
 package liner
 
 import (
+	"bufio"
+	"os"
 	"syscall"
 	"unsafe"
 )
@@ -68,6 +70,9 @@ func NewLiner() *State {
 		mode &^= enableMouseInput
 		mode |= enableWindowInput
 		mode.ApplyMode()
+	} else {
+		s.inputRedirected = true
+		s.r = bufio.NewReader(os.Stdin)
 	}
 
 	s.getColumns()

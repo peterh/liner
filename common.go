@@ -20,6 +20,7 @@ import (
 type commonState struct {
 	terminalSupported bool
 	outputRedirected  bool
+	inputRedirected   bool
 	history           []string
 	historyMutex      sync.RWMutex
 	completer         WordCompleter
@@ -181,7 +182,9 @@ func (s *State) SetCtrlCAborts(aborts bool) {
 }
 
 func (s *State) promptUnsupported(p string) (string, error) {
-	fmt.Print(p)
+	if !s.inputRedirected {
+		fmt.Print(p)
+	}
 	linebuf, _, err := s.r.ReadLine()
 	if err != nil {
 		return "", err

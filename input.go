@@ -41,12 +41,15 @@ func NewLiner() *State {
 	s.r = bufio.NewReader(os.Stdin)
 
 	s.terminalSupported = TerminalSupported()
-	if s.terminalSupported {
-		if m, err := TerminalMode(); err == nil {
-			s.origMode = *m.(*termios)
-		} else {
-			s.terminalSupported = false
-		}
+	if m, err := TerminalMode(); err == nil {
+		s.origMode = *m.(*termios)
+	} else {
+		s.terminalSupported = false
+		s.inputRedirected = true
+	}
+	if _, err := getMode(syscall.Stdout); err != 0 {
+		s.terminalSupported = false
+		s.outputRedirected = true
 	}
 	if s.terminalSupported {
 		mode := s.origMode
@@ -62,8 +65,10 @@ func NewLiner() *State {
 		s.checkOutput()
 	}
 
-	s.getColumns()
-	s.outputRedirected = s.columns <= 0
+	if !s.outputRedirected {
+		s.getColumns()
+		s.outputRedirected = s.columns <= 0
+	}
 
 	return &s
 }
