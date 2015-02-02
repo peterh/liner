@@ -4,27 +4,19 @@ package liner
 
 import (
 	"bufio"
-	"bytes"
 	"errors"
-	"fmt"
 	"os"
 )
 
 // State represents an open terminal
 type State struct {
 	commonState
-	r *bufio.Reader
 }
 
 // Prompt displays p, and then waits for user input. Prompt does not support
 // line editing on this operating system.
 func (s *State) Prompt(p string) (string, error) {
-	fmt.Print(p)
-	linebuf, _, err := s.r.ReadLine()
-	if err != nil {
-		return "", err
-	}
-	return string(bytes.TrimSpace(linebuf)), nil
+	return s.promptUnsupported(p)
 }
 
 // PasswordPrompt is not supported in this OS.

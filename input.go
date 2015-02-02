@@ -4,9 +4,7 @@ package liner
 
 import (
 	"bufio"
-	"bytes"
 	"errors"
-	"fmt"
 	"os"
 	"os/signal"
 	"strconv"
@@ -23,7 +21,6 @@ type nexter struct {
 // State represents an open terminal
 type State struct {
 	commonState
-	r           *bufio.Reader
 	origMode    termios
 	defaultMode termios
 	next        <-chan nexter
@@ -337,15 +334,6 @@ func (s *State) readNext() (interface{}, error) {
 
 	// not reached
 	return r, nil
-}
-
-func (s *State) promptUnsupported(p string) (string, error) {
-	fmt.Print(p)
-	linebuf, _, err := s.r.ReadLine()
-	if err != nil {
-		return "", err
-	}
-	return string(bytes.TrimSpace(linebuf)), nil
 }
 
 // Close returns the terminal to its previous mode

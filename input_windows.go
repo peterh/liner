@@ -1,7 +1,6 @@
 package liner
 
 import (
-	"errors"
 	"syscall"
 	"unsafe"
 )
@@ -249,10 +248,6 @@ func (s *State) readNext() (interface{}, error) {
 		return s.key, nil
 	}
 	return unknown, nil
-}
-
-func (s *State) promptUnsupported(p string) (string, error) {
-	return "", errors.New("liner: internal error: always supported on Windows")
 }
 
 // Close returns the terminal to its previous mode

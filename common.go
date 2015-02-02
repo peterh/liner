@@ -7,6 +7,7 @@ package liner
 
 import (
 	"bufio"
+	"bytes"
 	"container/ring"
 	"errors"
 	"fmt"
@@ -25,6 +26,7 @@ type commonState struct {
 	columns           int
 	killRing          *ring.Ring
 	ctrlCAborts       bool
+	r                 *bufio.Reader
 }
 
 // ErrPromptAborted is returned from Prompt or PasswordPrompt when the user presses Ctrl-C
@@ -176,4 +178,13 @@ type ModeApplier interface {
 // (and Prompt does not return) regardless of the value passed to SetCtrlCAborts.
 func (s *State) SetCtrlCAborts(aborts bool) {
 	s.ctrlCAborts = aborts
+}
+
+func (s *State) promptUnsupported(p string) (string, error) {
+	fmt.Print(p)
+	linebuf, _, err := s.r.ReadLine()
+	if err != nil {
+		return "", err
+	}
+	return string(bytes.TrimSpace(linebuf)), nil
 }
