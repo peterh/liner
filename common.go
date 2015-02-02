@@ -27,10 +27,13 @@ type commonState struct {
 	ctrlCAborts       bool
 }
 
-// ErrPromptAborted is returned from Prompt when the user presses Ctrl-C
+// ErrPromptAborted is returned from Prompt or PasswordPrompt when the user presses Ctrl-C
 // if SetCtrlCAborts(true) has been called on the State
 var ErrPromptAborted = errors.New("prompt aborted")
-var errNotTerminalOutput = errors.New("standard output is not a terminal")
+
+// ErrNotTerminalOutput is returned from Prompt or PasswordPrompt if the
+// platform is normally supported, but stdout has been redirected
+var ErrNotTerminalOutput = errors.New("standard output is not a terminal")
 
 // Max elements to save on the killring
 const KillRingMax = 60

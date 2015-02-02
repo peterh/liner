@@ -353,7 +353,7 @@ func (s *State) yank(p []rune, text []rune, pos int) ([]rune, int, interface{}, 
 // if the terminal supports it.
 func (s *State) Prompt(prompt string) (string, error) {
 	if s.outputRedirected {
-		return "", errNotTerminalOutput
+		return "", ErrNotTerminalOutput
 	}
 	if !s.terminalSupported {
 		return s.promptUnsupported(prompt)
@@ -673,7 +673,7 @@ mainLoop:
 // the user is not displayed in the terminal.
 func (s *State) PasswordPrompt(prompt string) (string, error) {
 	if s.outputRedirected {
-		return "", errNotTerminalOutput
+		return "", ErrNotTerminalOutput
 	}
 	if !s.terminalSupported {
 		return "", errors.New("liner: function not supported in this terminal")
