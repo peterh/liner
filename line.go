@@ -162,6 +162,62 @@ func (s *State) circularTabs(items []string) func(tabDirection) string {
 	}
 }
 
+func (s *State) printedTabs(items []string) func(tabDirection) string {
+	numTabs := 1
+	return func(direction tabDirection) string {
+		if len(items) == 1 {
+			return items[0]
+		}
+
+		if numTabs == 2 {
+			if len(items) > 100 {
+				fmt.Printf("\nDisplay all %d possibilities? (y or n) ", len(items))
+				for {
+					next, err := s.readNext()
+					if err != nil {
+						return ""
+					}
+
+					if key, ok := next.(rune); ok {
+						if unicode.ToLower(key) == 'n' {
+							return ""
+						} else if unicode.ToLower(key) == 'y' {
+							break
+						}
+					}
+				}
+			}
+			fmt.Println("")
+			maxWidth := 0
+			for _, item := range items {
+				if len(item) > maxWidth {
+					maxWidth = len(item) + 1
+				}
+			}
+
+			numColumns := s.columns / maxWidth
+			if len(items) <= numColumns {
+				maxWidth = 0
+			}
+			for i := 0; i < len(items); i += numColumns {
+				for j := 0; j < numColumns; j++ {
+					if i+j < len(items) {
+						if maxWidth > 0 {
+							fmt.Printf("%-*s", maxWidth, items[i+j])
+						} else {
+							fmt.Printf("%v ", items[i+j])
+						}
+					}
+				}
+				fmt.Println("")
+			}
+		} else {
+			numTabs++
+		}
+		return ""
+	}
+}
+
 func (s *State) tabComplete(p []rune, line []rune, pos int) ([]rune, int, interface{}, error) {
 	if s.completer == nil {
 		return line, pos, rune(esc), nil
@@ -173,6 +229,9 @@ func (s *State) tabComplete(p []rune, line []rune, pos int) ([]rune, int, interf
 	hl := utf8.RuneCountInString(head)
 	direction := tabForward
 	tabPrinter := s.circularTabs(list)
+	if s.tabStyle == TabPrints {
+		tabPrinter = s.printedTabs(list)
+	}
 
 	for {
 		pick := tabPrinter(direction)

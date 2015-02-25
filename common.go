@@ -28,7 +28,24 @@ type commonState struct {
 	killRing          *ring.Ring
 	ctrlCAborts       bool
 	r                 *bufio.Reader
+	tabStyle          TabStyle
 }
+
+// TabStyle is used to select how tab completions are displayed.
+type TabStyle int
+
+// Two tab styles are currently available:
+//
+// TabCircular cycles through each completion item and displays it directly on
+// the prompt
+//
+// TabPrints prints the list of completion items to the screen after a second
+// tab key is pressed. This behaves similar to GNU readline and BASH (which
+// uses readline)
+const (
+	TabCircular TabStyle = iota
+	TabPrints
+)
 
 // ErrPromptAborted is returned from Prompt or PasswordPrompt when the user presses Ctrl-C
 // if SetCtrlCAborts(true) has been called on the State
@@ -165,6 +182,15 @@ func (s *State) SetCompleter(f Completer) {
 // fetch completion candidates when the user presses tab.
 func (s *State) SetWordCompleter(f WordCompleter) {
 	s.completer = f
+}
+
+// SetTabCompletionStyle sets the behvavior when the Tab key is pressed
+// for auto-completion.  TabCircular is the default behavior and cycles
+// through the list of candidates at the prompt.  TabPrints will print
+// the available completion candidates to the screen similar to BASH
+// and GNU Readline
+func (s *State) SetTabCompletionStyle(tabStyle TabStyle) {
+	s.tabStyle = tabStyle
 }
 
 // ModeApplier is the interface that wraps a representation of the terminal
