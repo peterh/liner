@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"strings"
 	"unicode"
 	"unicode/utf8"
 )
@@ -142,6 +143,29 @@ func (s *State) refresh(prompt []rune, buf []rune, pos int) error {
 	return err
 }
 
+func longestCommonPrefix(strs []string) string {
+	if len(strs) == 0 {
+		return ""
+	}
+	longest := strs[0]
+
+	for _, str := range strs[1:] {
+		if str != longest {
+			nextLongest := ""
+			for i, _ := range str {
+				if strings.HasPrefix(longest, str[:i+1]) {
+					nextLongest = str[:i+1]
+				} else {
+					longest = str[:i+1]
+					break
+				}
+			}
+			longest = nextLongest
+		}
+	}
+	return longest
+}
+
 func (s *State) circularTabs(items []string) func(tabDirection) string {
 	item := -1
 	return func(direction tabDirection) string {
@@ -214,7 +238,7 @@ func (s *State) printedTabs(items []string) func(tabDirection) string {
 		} else {
 			numTabs++
 		}
-		return ""
+		return longestCommonPrefix(items)
 	}
 }
 
