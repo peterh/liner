@@ -215,7 +215,7 @@ func (s *State) printedTabs(items []string) func(tabDirection) (string, error) {
 			fmt.Println("")
 			maxWidth := 0
 			for _, item := range items {
-				if len(item) > maxWidth {
+				if len(item) >= maxWidth {
 					maxWidth = len(item) + 1
 				}
 			}
