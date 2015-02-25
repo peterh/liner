@@ -79,6 +79,13 @@ const (
 	beep = "\a"
 )
 
+type tabDirection int
+
+const (
+	tabForward tabDirection = iota
+	tabReverse
+)
+
 func (s *State) refresh(prompt []rune, buf []rune, pos int) error {
 	s.cursorPos(0)
 	_, err := fmt.Print(string(prompt))
@@ -135,6 +142,26 @@ func (s *State) refresh(prompt []rune, buf []rune, pos int) error {
 	return err
 }
 
+func (s *State) circularTabs(items []string) func(tabDirection) string {
+	item := -1
+	return func(direction tabDirection) string {
+		if direction == tabForward {
+			if item < len(items)-1 {
+				item++
+			} else {
+				item = 0
+			}
+		} else if direction == tabReverse {
+			if item > 0 {
+				item--
+			} else {
+				item = len(items) - 1
+			}
+		}
+		return items[item]
+	}
+}
+
 func (s *State) tabComplete(p []rune, line []rune, pos int) ([]rune, int, interface{}, error) {
 	if s.completer == nil {
 		return line, pos, rune(esc), nil
@@ -143,10 +170,12 @@ func (s *State) tabComplete(p []rune, line []rune, pos int) ([]rune, int, interf
 	if len(list) <= 0 {
 		return line, pos, rune(esc), nil
 	}
-	listEntry := 0
 	hl := utf8.RuneCountInString(head)
+	direction := tabForward
+	tabPrinter := s.circularTabs(list)
+
 	for {
-		pick := list[listEntry]
+		pick := tabPrinter(direction)
 		s.refresh(p, []rune(head+pick+tail), hl+utf8.RuneCountInString(pick))
 
 		next, err := s.readNext()
@@ -155,11 +184,7 @@ func (s *State) tabComplete(p []rune, line []rune, pos int) ([]rune, int, interf
 		}
 		if key, ok := next.(rune); ok {
 			if key == tab {
-				if listEntry < len(list)-1 {
-					listEntry++
-				} else {
-					listEntry = 0
-				}
+				direction = tabForward
 				continue
 			}
 			if key == esc {
@@ -167,11 +192,7 @@ func (s *State) tabComplete(p []rune, line []rune, pos int) ([]rune, int, interf
 			}
 		}
 		if a, ok := next.(action); ok && a == shiftTab {
-			if listEntry > 0 {
-				listEntry--
-			} else {
-				listEntry = len(list) - 1
-			}
+			direction = tabReverse
 			continue
 		}
 		return []rune(head + pick + tail), hl + utf8.RuneCountInString(pick), next, nil
