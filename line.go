@@ -166,9 +166,9 @@ func longestCommonPrefix(strs []string) string {
 	return longest
 }
 
-func (s *State) circularTabs(items []string) func(tabDirection) string {
+func (s *State) circularTabs(items []string) func(tabDirection) (string, error) {
 	item := -1
-	return func(direction tabDirection) string {
+	return func(direction tabDirection) (string, error) {
 		if direction == tabForward {
 			if item < len(items)-1 {
 				item++
@@ -182,16 +182,16 @@ func (s *State) circularTabs(items []string) func(tabDirection) string {
 				item = len(items) - 1
 			}
 		}
-		return items[item]
+		return items[item], nil
 	}
 }
 
-func (s *State) printedTabs(items []string) func(tabDirection) string {
+func (s *State) printedTabs(items []string) func(tabDirection) (string, error) {
 	numTabs := 1
 	prefix := longestCommonPrefix(items)
-	return func(direction tabDirection) string {
+	return func(direction tabDirection) (string, error) {
 		if len(items) == 1 {
-			return items[0]
+			return items[0], nil
 		}
 
 		if numTabs == 2 {
@@ -200,12 +200,12 @@ func (s *State) printedTabs(items []string) func(tabDirection) string {
 				for {
 					next, err := s.readNext()
 					if err != nil {
-						return prefix
+						return prefix, err
 					}
 
 					if key, ok := next.(rune); ok {
 						if unicode.ToLower(key) == 'n' {
-							return prefix
+							return prefix, nil
 						} else if unicode.ToLower(key) == 'y' {
 							break
 						}
@@ -244,7 +244,7 @@ func (s *State) printedTabs(items []string) func(tabDirection) string {
 		} else {
 			numTabs++
 		}
-		return prefix
+		return prefix, nil
 	}
 }
 
@@ -264,7 +264,10 @@ func (s *State) tabComplete(p []rune, line []rune, pos int) ([]rune, int, interf
 	}
 
 	for {
-		pick := tabPrinter(direction)
+		pick, err := tabPrinter(direction)
+		if err != nil {
+			return line, pos, rune(esc), err
+		}
 		s.refresh(p, []rune(head+pick+tail), hl+utf8.RuneCountInString(pick))
 
 		next, err := s.readNext()
