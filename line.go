@@ -220,11 +220,16 @@ func (s *State) printedTabs(items []string) func(tabDirection) string {
 			}
 
 			numColumns := s.columns / maxWidth
+			numRows := len(items) / numColumns
+			if len(items)%numColumns > 0 {
+				numRows += 1
+			}
+
 			if len(items) <= numColumns {
 				maxWidth = 0
 			}
-			for i := 0; i < len(items); i += numColumns {
-				for j := 0; j < numColumns; j++ {
+			for i := 0; i < numRows; i++ {
+				for j := 0; j < numColumns*numRows; j += numRows {
 					if i+j < len(items) {
 						if maxWidth > 0 {
 							fmt.Printf("%-*s", maxWidth, items[i+j])
