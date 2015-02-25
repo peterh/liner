@@ -188,6 +188,7 @@ func (s *State) circularTabs(items []string) func(tabDirection) string {
 
 func (s *State) printedTabs(items []string) func(tabDirection) string {
 	numTabs := 1
+	prefix := longestCommonPrefix(items)
 	return func(direction tabDirection) string {
 		if len(items) == 1 {
 			return items[0]
@@ -199,12 +200,12 @@ func (s *State) printedTabs(items []string) func(tabDirection) string {
 				for {
 					next, err := s.readNext()
 					if err != nil {
-						return ""
+						return prefix
 					}
 
 					if key, ok := next.(rune); ok {
 						if unicode.ToLower(key) == 'n' {
-							return ""
+							return prefix
 						} else if unicode.ToLower(key) == 'y' {
 							break
 						}
@@ -243,7 +244,7 @@ func (s *State) printedTabs(items []string) func(tabDirection) string {
 		} else {
 			numTabs++
 		}
-		return longestCommonPrefix(items)
+		return prefix
 	}
 }
 
