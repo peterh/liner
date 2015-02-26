@@ -257,6 +257,11 @@ func (s *State) tabComplete(p []rune, line []rune, pos int) ([]rune, int, interf
 		return line, pos, rune(esc), nil
 	}
 	hl := utf8.RuneCountInString(head)
+	if len(list) == 1 {
+		s.refresh(p, []rune(head+list[0]+tail), hl+utf8.RuneCountInString(list[0]))
+		return []rune(head + list[0] + tail), hl + utf8.RuneCountInString(list[0]), rune(esc), nil
+	}
+
 	direction := tabForward
 	tabPrinter := s.circularTabs(list)
 	if s.tabStyle == TabPrints {
