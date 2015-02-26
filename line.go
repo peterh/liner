@@ -150,19 +150,12 @@ func longestCommonPrefix(strs []string) string {
 	longest := strs[0]
 
 	for _, str := range strs[1:] {
-		if str != longest {
-			nextLongest := ""
-			for i, _ := range str {
-				if strings.HasPrefix(longest, str[:i+1]) {
-					nextLongest = str[:i+1]
-				} else {
-					longest = str[:i+1]
-					break
-				}
-			}
-			longest = nextLongest
+		for !strings.HasPrefix(str, longest) {
+			longest = longest[:len(longest)-1]
 		}
 	}
+	// Remove trailing partial runes
+	longest = strings.TrimRight(longest, "\uFFFD")
 	return longest
 }
 
