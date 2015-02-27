@@ -216,7 +216,7 @@ func (s *State) printedTabs(items []string) func(tabDirection) (string, error) {
 			numColumns := s.columns / maxWidth
 			numRows := len(items) / numColumns
 			if len(items)%numColumns > 0 {
-				numRows += 1
+				numRows++
 			}
 
 			if len(items) <= numColumns {
