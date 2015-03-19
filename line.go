@@ -463,14 +463,11 @@ func (s *State) yank(p []rune, text []rune, pos int) ([]rune, int, interface{}, 
 // Prompt displays p, and then waits for user input. Prompt allows line editing
 // if the terminal supports it.
 func (s *State) Prompt(prompt string) (string, error) {
-	if s.inputRedirected {
+	if s.inputRedirected || !s.terminalSupported {
 		return s.promptUnsupported(prompt)
 	}
 	if s.outputRedirected {
 		return "", ErrNotTerminalOutput
-	}
-	if !s.terminalSupported {
-		return s.promptUnsupported(prompt)
 	}
 
 	s.historyMutex.RLock()
@@ -786,14 +783,14 @@ mainLoop:
 // PasswordPrompt displays p, and then waits for user input. The input typed by
 // the user is not displayed in the terminal.
 func (s *State) PasswordPrompt(prompt string) (string, error) {
+	if !s.terminalSupported {
+		return "", errors.New("liner: function not supported in this terminal")
+	}
 	if s.inputRedirected {
 		return s.promptUnsupported(prompt)
 	}
 	if s.outputRedirected {
 		return "", ErrNotTerminalOutput
-	}
-	if !s.terminalSupported {
-		return "", errors.New("liner: function not supported in this terminal")
 	}
 
 	s.startPrompt()

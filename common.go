@@ -208,7 +208,7 @@ func (s *State) SetCtrlCAborts(aborts bool) {
 }
 
 func (s *State) promptUnsupported(p string) (string, error) {
-	if !s.inputRedirected {
+	if !s.inputRedirected || !s.terminalSupported {
 		fmt.Print(p)
 	}
 	linebuf, _, err := s.r.ReadLine()

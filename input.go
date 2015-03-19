@@ -44,14 +44,15 @@ func NewLiner() *State {
 	if m, err := TerminalMode(); err == nil {
 		s.origMode = *m.(*termios)
 	} else {
-		s.terminalSupported = false
 		s.inputRedirected = true
 	}
 	if _, err := getMode(syscall.Stdout); err != 0 {
-		s.terminalSupported = false
 		s.outputRedirected = true
 	}
-	if s.terminalSupported {
+	if s.inputRedirected && s.outputRedirected {
+		s.terminalSupported = false
+	}
+	if s.terminalSupported && !s.inputRedirected && !s.outputRedirected {
 		mode := s.origMode
 		mode.Iflag &^= icrnl | inpck | istrip | ixon
 		mode.Cflag |= cs8
@@ -344,7 +345,7 @@ func (s *State) readNext() (interface{}, error) {
 // Close returns the terminal to its previous mode
 func (s *State) Close() error {
 	stopSignal(s.winch)
-	if s.terminalSupported {
+	if !s.inputRedirected {
 		s.origMode.ApplyMode()
 	}
 	return nil
@@ -353,6 +354,8 @@ func (s *State) Close() error {
 // TerminalSupported returns true if the current terminal supports
 // line editing features, and false if liner will use the 'dumb'
 // fallback for input.
+// Note that TerminalSupported does not check all factors that may
+// cause liner to not fully support the terminal (such as stdin redirection)
 func TerminalSupported() bool {
 	bad := map[string]bool{"": true, "dumb": true, "cons25": true}
 	return !bad[strings.ToLower(os.Getenv("TERM"))]
