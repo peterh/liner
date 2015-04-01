@@ -30,16 +30,29 @@ type State struct {
 }
 
 // NewLiner initializes a new *State, and sets the terminal into raw mode. To
-// restore the terminal to its previous state, call State.Close().
+// restore the terminal to its previous state, call State.Close() or State.Stop().
 //
 // Note if you are still using Go 1.0: NewLiner handles SIGWINCH, so it will
-// leak a channel every time you call it. Therefore, it is recommened that you
+// leak a channel every time you call it. Therefore, it is recommended that you
 // upgrade to a newer release of Go, or ensure that NewLiner is only called
 // once.
 func NewLiner() *State {
 	var s State
 	s.r = bufio.NewReader(os.Stdin)
+	s.Start()
+	return &s
+}
 
+// Stop returns the terminal to it's original state, without releasing
+// the resources associated with the State.
+func (s *State) Stop() {
+	if !s.inputRedirected {
+		s.origMode.ApplyMode()
+	}
+}
+
+// Start starts the State again after a call to State.Stop().
+func (s *State) Start() {
 	s.terminalSupported = TerminalSupported()
 	if m, err := TerminalMode(); err == nil {
 		s.origMode = *m.(*termios)
@@ -59,9 +72,11 @@ func NewLiner() *State {
 		mode.Lflag &^= syscall.ECHO | icanon | iexten
 		mode.ApplyMode()
 
-		winch := make(chan os.Signal, 1)
-		signal.Notify(winch, syscall.SIGWINCH)
-		s.winch = winch
+		if s.winch == nil {
+			winch := make(chan os.Signal, 1)
+			signal.Notify(winch, syscall.SIGWINCH)
+			s.winch = winch
+		}
 
 		s.checkOutput()
 	}
@@ -70,8 +85,6 @@ func NewLiner() *State {
 		s.getColumns()
 		s.outputRedirected = s.columns <= 0
 	}
-
-	return &s
 }
 
 var errTimedOut = errors.New("timeout")
@@ -345,9 +358,7 @@ func (s *State) readNext() (interface{}, error) {
 // Close returns the terminal to its previous mode
 func (s *State) Close() error {
 	stopSignal(s.winch)
-	if !s.inputRedirected {
-		s.origMode.ApplyMode()
-	}
+	s.Stop()
 	return nil
 }
 
