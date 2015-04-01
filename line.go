@@ -460,8 +460,9 @@ func (s *State) yank(p []rune, text []rune, pos int) ([]rune, int, interface{}, 
 	return line, pos, esc, nil
 }
 
-// Prompt displays p, and then waits for user input. Prompt allows line editing
-// if the terminal supports it.
+// Prompt displays p and returns a line of user input, not including a trailing
+// newline character. An io.EOF error is returned if the user signals end-of-file
+// by pressing Ctrl-D. Prompt allows line editing if the terminal supports it.
 func (s *State) Prompt(prompt string) (string, error) {
 	if s.inputRedirected || !s.terminalSupported {
 		return s.promptUnsupported(prompt)
