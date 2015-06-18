@@ -1,7 +1,11 @@
 package liner
 
 import (
+	"bufio"
 	"bytes"
+	"fmt"
+	"io/ioutil"
+	"os"
 	"strings"
 	"testing"
 )
@@ -86,5 +90,59 @@ dingle`
 	}
 	if num != 5 {
 		t.Fatal("Wrong number of history entries read the 3rd time")
+	}
+}
+
+func TestPrompt(t *testing.T) {
+	var s State
+	s.terminalSupported = true
+
+	input := []byte{'M','e','e','h', '\n'}
+	s.r = bufio.NewReader(bytes.NewBuffer(input))
+	s.next = make(chan nexter)
+
+	got, err := s.Prompt("> ")
+	if err != nil {
+		t.Fatal("Unexpected error on prompt", err)
+	}
+	if got != strings.TrimSpace(string(input)) {
+		t.Fatal(fmt.Sprintf("Prompt returned unexpected data %q != %q", got, string(input)))
+	}
+
+	
+}
+
+func TestPasswordPrompt(t *testing.T) {
+	var s State
+	s.terminalSupported = true
+
+	input := []byte{'s','h','e','h', '\n'}
+	s.r = bufio.NewReader(bytes.NewBuffer(input))
+	s.next = make(chan nexter)
+
+	realStdout := os.Stdout
+	defer func() {os.Stdout = realStdout}()
+	tmpf, err := ioutil.TempFile("", "")
+	if err != nil {
+		t.Fatal("error creating tmpfile", err)
+	}
+	os.Stdout = tmpf
+	
+	
+	got, err := s.PasswordPrompt("> ")
+	if err != nil {
+		t.Fatal("Unexpected error on prompt", err)
+	}
+	if got != strings.TrimSpace(string(input)) {
+		t.Fatal(fmt.Sprintf("Prompt returned unexpected data %q != %q", got, string(input)))
+	}
+
+	tmpf.Seek(0, 0)
+	output, err := ioutil.ReadAll(tmpf)
+	if err != nil {
+		t.Fatal("Unexpected error on read", err)
+	}
+	if strings.Contains(string(output), string(input)) {
+		t.Fatal("password in output")
 	}
 }
