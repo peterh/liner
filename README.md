@@ -62,6 +62,8 @@ func main() {
 	line := liner.NewLiner()
 	defer line.Close()
 
+	line.SetCtrlCAborts(true)
+
 	line.SetCompleter(func(line string) (c []string) {
 		for _, n := range names {
 			if strings.HasPrefix(n, strings.ToLower(line)) {
@@ -76,11 +78,13 @@ func main() {
 		f.Close()
 	}
 
-	if name, err := line.Prompt("What is your name? "); err != nil {
-		log.Print("Error reading line: ", err)
-	} else {
+	if name, err := line.Prompt("What is your name? "); err == nil {
 		log.Print("Got: ", name)
 		line.AppendHistory(name)
+	} else if err == liner.ErrPromptAborted {
+		log.Print("Aborted")
+	} else {
+		log.Print("Error reading line: ", err)
 	}
 
 	if f, err := os.Create(history_fn); err != nil {
