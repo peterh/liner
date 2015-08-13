@@ -739,9 +739,19 @@ mainLoop:
 				}
 			case wordRight:
 				if pos < len(line) {
+					var spaceHere, spaceLeft, hereKnown bool
 					for {
 						pos++
-						if pos == len(line) || unicode.IsSpace(line[pos]) {
+						if pos == len(line) {
+							break
+						}
+						if hereKnown {
+							spaceLeft = spaceHere
+						} else {
+							spaceLeft = unicode.IsSpace(line[pos-1])
+						}
+						spaceHere, hereKnown = unicode.IsSpace(line[pos]), true
+						if spaceHere && !spaceLeft {
 							break
 						}
 					}
