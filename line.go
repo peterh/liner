@@ -712,18 +712,20 @@ mainLoop:
 				}
 			case wordLeft:
 				if pos > 0 {
-					var spaceHere, spaceLeft, leftKnown bool
+					var spaceLeft, spaceHere, havePrevIter bool
 					for {
 						pos--
 						if pos == 0 {
 							break
 						}
-						if leftKnown {
+						left, here := line[pos-1], line[pos]
+						if havePrevIter {
 							spaceHere = spaceLeft
 						} else {
-							spaceHere = unicode.IsSpace(line[pos])
+							spaceHere = unicode.IsSpace(here)
 						}
-						spaceLeft, leftKnown = unicode.IsSpace(line[pos-1]), true
+						spaceLeft = unicode.IsSpace(left)
+						havePrevIter = true
 						if !spaceHere && spaceLeft {
 							break
 						}
@@ -739,18 +741,20 @@ mainLoop:
 				}
 			case wordRight:
 				if pos < len(line) {
-					var spaceHere, spaceLeft, hereKnown bool
+					var spaceLeft, spaceHere, havePrevIter bool
 					for {
 						pos++
 						if pos == len(line) {
 							break
 						}
-						if hereKnown {
+						left, here := line[pos-1], line[pos]
+						if havePrevIter {
 							spaceLeft = spaceHere
 						} else {
-							spaceLeft = unicode.IsSpace(line[pos-1])
+							spaceLeft = unicode.IsSpace(left)
 						}
-						spaceHere, hereKnown = unicode.IsSpace(line[pos]), true
+						spaceHere = unicode.IsSpace(here)
+						havePrevIter = true
 						if spaceHere && !spaceLeft {
 							break
 						}
