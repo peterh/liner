@@ -726,7 +726,9 @@ mainLoop:
 						}
 						spaceLeft = unicode.IsSpace(left)
 						havePrevIter = true
-						if !spaceHere && spaceLeft {
+						if s.wordBreaker(here) ||
+							(spaceLeft || s.wordBreaker(left)) && !spaceHere {
+							// Word begins here.
 							break
 						}
 					}
@@ -755,7 +757,9 @@ mainLoop:
 						}
 						spaceHere = unicode.IsSpace(here)
 						havePrevIter = true
-						if spaceHere && !spaceLeft {
+						if s.wordBreaker(left) ||
+							!spaceLeft && (spaceHere || s.wordBreaker(here)) {
+							// Word ends here.
 							break
 						}
 					}
