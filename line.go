@@ -643,12 +643,25 @@ mainLoop:
 					line = append(line[:pos-1], line[pos:]...)
 					pos--
 				}
-				// Remove non-whitespace to the left
+				posPriorToWordRemoval := pos
+				// Remove a word to the left
+				var breakerEncountered bool
 				for {
-					if pos == 0 || unicode.IsSpace(line[pos-1]) {
+					if pos == 0 {
 						break
 					}
-					buf = append(buf, line[pos-1])
+					left := line[pos-1]
+					if unicode.IsSpace(left) || breakerEncountered {
+						break
+					}
+					if s.wordBreaker(left) {
+						// ctrlW should remove at least one non-whitespace rune
+						if pos != posPriorToWordRemoval {
+							break
+						}
+						breakerEncountered = true
+					}
+					buf = append(buf, left)
 					line = append(line[:pos-1], line[pos:]...)
 					pos--
 				}
