@@ -29,6 +29,7 @@ type commonState struct {
 	ctrlCAborts       bool
 	r                 *bufio.Reader
 	tabStyle          TabStyle
+	wordBreakers      []rune
 }
 
 // TabStyle is used to select how tab completions are displayed.
@@ -205,6 +206,21 @@ type ModeApplier interface {
 // (and Prompt does not return) regardless of the value passed to SetCtrlCAborts.
 func (s *State) SetCtrlCAborts(aborts bool) {
 	s.ctrlCAborts = aborts
+}
+
+// SetWordBreakers sets runes that will be considered stops for word-based
+// cursor movement and deletion without requiring surrounding whitespace.
+func (s *State) SetWordBreakers(breakers ...rune) {
+	s.wordBreakers = breakers
+}
+
+func (s *State) wordBreaker(r rune) bool {
+	for _, br := range s.wordBreakers {
+		if r == br {
+			return true
+		}
+	}
+	return false
 }
 
 func (s *State) promptUnsupported(p string) (string, error) {
