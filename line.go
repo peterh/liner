@@ -37,6 +37,8 @@ const (
 	f10
 	f11
 	f12
+	altB
+	altF
 	altY
 	shiftTab
 	wordLeft
@@ -710,7 +712,7 @@ mainLoop:
 				} else {
 					fmt.Print(beep)
 				}
-			case wordLeft:
+			case wordLeft, altB:
 				if pos > 0 {
 					var spaceHere, spaceLeft, leftKnown bool
 					for {
@@ -737,7 +739,7 @@ mainLoop:
 				} else {
 					fmt.Print(beep)
 				}
-			case wordRight:
+			case wordRight, altF:
 				if pos < len(line) {
 					var spaceHere, spaceLeft, hereKnown bool
 					for {
