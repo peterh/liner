@@ -20,16 +20,21 @@ type consoleScreenBufferInfo struct {
 }
 
 func (s *State) cursorPos(x int) {
-	var sbi consoleScreenBufferInfo
-	procGetConsoleScreenBufferInfo.Call(uintptr(s.hOut), uintptr(unsafe.Pointer(&sbi)))
+	sbiptr := malloc(unsafe.Sizeof(consoleScreenBufferInfo{}))
+	defer free(sbiptr)
+	sbi := (*consoleScreenBufferInfo)(unsafe.Pointer(sbiptr))
+	procGetConsoleScreenBufferInfo.Call(uintptr(s.hOut), sbiptr)
 	procSetConsoleCursorPosition.Call(uintptr(s.hOut),
 		uintptr(int(x)&0xFFFF|int(sbi.dwCursorPosition.y)<<16))
 }
 
 func (s *State) eraseLine() {
-	var sbi consoleScreenBufferInfo
-	procGetConsoleScreenBufferInfo.Call(uintptr(s.hOut), uintptr(unsafe.Pointer(&sbi)))
-	var numWritten uint32
+	sbiptr := malloc(unsafe.Sizeof(consoleScreenBufferInfo{}))
+	defer free(sbiptr)
+	sbi := (*consoleScreenBufferInfo)(unsafe.Pointer(sbiptr))
+	procGetConsoleScreenBufferInfo.Call(uintptr(s.hOut), sbiptr)
+	numWritten := malloc(unsafe.Sizeof(uint32(0)))
+	defer free(numWritten)
 	procFillConsoleOutputCharacter.Call(uintptr(s.hOut), uintptr(' '),
 		uintptr(sbi.dwSize.x-sbi.dwCursorPosition.x),
 		uintptr(int(sbi.dwCursorPosition.x)&0xFFFF|int(sbi.dwCursorPosition.y)<<16),
@@ -37,9 +42,12 @@ func (s *State) eraseLine() {
 }
 
 func (s *State) eraseScreen() {
-	var sbi consoleScreenBufferInfo
-	procGetConsoleScreenBufferInfo.Call(uintptr(s.hOut), uintptr(unsafe.Pointer(&sbi)))
-	var numWritten uint32
+	sbiptr := malloc(unsafe.Sizeof(consoleScreenBufferInfo{}))
+	defer free(sbiptr)
+	sbi := (*consoleScreenBufferInfo)(unsafe.Pointer(sbiptr))
+	procGetConsoleScreenBufferInfo.Call(uintptr(s.hOut), sbiptr)
+	numWritten := malloc(unsafe.Sizeof(uint32(0)))
+	defer free(numWritten)
 	procFillConsoleOutputCharacter.Call(uintptr(s.hOut), uintptr(' '),
 		uintptr(sbi.dwSize.x)*uintptr(sbi.dwSize.y),
 		0,
@@ -48,7 +56,9 @@ func (s *State) eraseScreen() {
 }
 
 func (s *State) getColumns() {
-	var sbi consoleScreenBufferInfo
-	procGetConsoleScreenBufferInfo.Call(uintptr(s.hOut), uintptr(unsafe.Pointer(&sbi)))
+	sbiptr := malloc(unsafe.Sizeof(consoleScreenBufferInfo{}))
+	defer free(sbiptr)
+	sbi := (*consoleScreenBufferInfo)(unsafe.Pointer(sbiptr))
+	procGetConsoleScreenBufferInfo.Call(uintptr(s.hOut), sbiptr)
 	s.columns = int(sbi.dwSize.x)
 }

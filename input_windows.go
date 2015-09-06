@@ -151,10 +151,11 @@ func (s *State) readNext() (interface{}, error) {
 		return s.key, nil
 	}
 
-	var input input_record
-	pbuf := uintptr(unsafe.Pointer(&input))
-	var rv uint32
-	prv := uintptr(unsafe.Pointer(&rv))
+	pbuf := malloc(unsafe.Sizeof(input_record{}))
+	defer free(pbuf)
+	input := (*input_record)(unsafe.Pointer(pbuf))
+	prv := malloc(unsafe.Sizeof(uint32(0)))
+	defer free(prv)
 
 	for {
 		ok, _, err := procReadConsoleInput.Call(uintptr(s.handle), pbuf, 1, prv)
@@ -300,14 +301,15 @@ func (mode inputMode) ApplyMode() error {
 // This function is provided for convenience, and should
 // not be necessary for most users of liner.
 func TerminalMode() (ModeApplier, error) {
-	var mode inputMode
+	pmode := malloc(unsafe.Sizeof(inputMode(0)))
+	mode := (*inputMode)(unsafe.Pointer(pmode))
 	hIn, _, err := procGetStdHandle.Call(uintptr(std_input_handle))
 	if hIn == invalid_handle_value || hIn == 0 {
 		return nil, err
 	}
-	ok, _, err := procGetConsoleMode.Call(hIn, uintptr(unsafe.Pointer(&mode)))
+	ok, _, err := procGetConsoleMode.Call(hIn, pmode)
 	if ok != 0 {
 		err = nil
 	}
-	return mode, err
+	return *mode, err
 }
