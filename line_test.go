@@ -98,6 +98,7 @@ func TestColumns(t *testing.T) {
 		{80, 1, 3, len(list[2]) + 1},
 		{120, 2, 2, len(list[2]) + 1},
 		{800, 14, 1, 0},
+		{8, 1, 3, 7},
 	}
 
 	for i, o := range output {
