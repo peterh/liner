@@ -183,6 +183,9 @@ func (s *State) circularTabs(items []string) func(tabDirection) (string, error) 
 
 func calculateColumns(screenWidth int, items []string) (numColumns, numRows, maxWidth int) {
 	for _, item := range items {
+		if len(item) >= screenWidth {
+			return 1, len(items), screenWidth - 1
+		}
 		if len(item) >= maxWidth {
 			maxWidth = len(item) + 1
 		}
@@ -235,7 +238,7 @@ func (s *State) printedTabs(items []string) func(tabDirection) (string, error) {
 				for j := 0; j < numColumns*numRows; j += numRows {
 					if i+j < len(items) {
 						if maxWidth > 0 {
-							fmt.Printf("%-*s", maxWidth, items[i+j])
+							fmt.Printf("%-*.[1]*s", maxWidth, items[i+j])
 						} else {
 							fmt.Printf("%v ", items[i+j])
 						}
