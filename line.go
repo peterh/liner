@@ -655,12 +655,25 @@ mainLoop:
 					line = append(line[:pos-1], line[pos:]...)
 					pos--
 				}
-				// Remove non-whitespace to the left
+				posPriorToWordRemoval := pos
+				// Remove a word to the left
+				var breakerEncountered bool
 				for {
-					if pos == 0 || unicode.IsSpace(line[pos-1]) {
+					if pos == 0 {
 						break
 					}
-					buf = append(buf, line[pos-1])
+					left := line[pos-1]
+					if unicode.IsSpace(left) || breakerEncountered {
+						break
+					}
+					if s.wordBreaker(left) {
+						// ctrlW should remove at least one non-whitespace rune
+						if pos != posPriorToWordRemoval {
+							break
+						}
+						breakerEncountered = true
+					}
+					buf = append(buf, left)
 					line = append(line[:pos-1], line[pos:]...)
 					pos--
 				}
@@ -724,19 +737,23 @@ mainLoop:
 				}
 			case wordLeft, altB:
 				if pos > 0 {
-					var spaceHere, spaceLeft, leftKnown bool
+					var spaceLeft, spaceHere, havePrevIter bool
 					for {
 						pos--
 						if pos == 0 {
 							break
 						}
-						if leftKnown {
+						left, here := line[pos-1], line[pos]
+						if havePrevIter {
 							spaceHere = spaceLeft
 						} else {
-							spaceHere = unicode.IsSpace(line[pos])
+							spaceHere = unicode.IsSpace(here)
 						}
-						spaceLeft, leftKnown = unicode.IsSpace(line[pos-1]), true
-						if !spaceHere && spaceLeft {
+						spaceLeft = unicode.IsSpace(left)
+						havePrevIter = true
+						if s.wordBreaker(here) ||
+							(spaceLeft || s.wordBreaker(left)) && !spaceHere {
+							// Word begins here.
 							break
 						}
 					}
@@ -751,19 +768,23 @@ mainLoop:
 				}
 			case wordRight, altF:
 				if pos < len(line) {
-					var spaceHere, spaceLeft, hereKnown bool
+					var spaceLeft, spaceHere, havePrevIter bool
 					for {
 						pos++
 						if pos == len(line) {
 							break
 						}
-						if hereKnown {
+						left, here := line[pos-1], line[pos]
+						if havePrevIter {
 							spaceLeft = spaceHere
 						} else {
-							spaceLeft = unicode.IsSpace(line[pos-1])
+							spaceLeft = unicode.IsSpace(left)
 						}
-						spaceHere, hereKnown = unicode.IsSpace(line[pos]), true
-						if spaceHere && !spaceLeft {
+						spaceHere = unicode.IsSpace(here)
+						havePrevIter = true
+						if s.wordBreaker(left) ||
+							!spaceLeft && (spaceHere || s.wordBreaker(here)) {
+							// Word ends here.
 							break
 						}
 					}
