@@ -2,6 +2,7 @@ package liner
 
 import (
 	"bytes"
+	"fmt"
 	"strings"
 	"testing"
 )
@@ -111,6 +112,21 @@ func TestColumns(t *testing.T) {
 		}
 		if max != o.maxWidth {
 			t.Fatalf("Wrong column width, %d != %d, in TestColumns %d\n", max, o.maxWidth, i)
+		}
+	}
+}
+
+func ExampleWriteHistory() {
+	var s State
+	s.AppendHistory("foo")
+	s.AppendHistory("bar")
+
+	buf := new(bytes.Buffer)
+	_, err := s.WriteHistory(buf)
+	if err != nil {
+		history := strings.Split(buf.String(), "\n")
+		for i, line := range history {
+			fmt.Println("History entry ", i, ": ", line)
 		}
 	}
 }
