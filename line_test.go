@@ -116,17 +116,22 @@ func TestColumns(t *testing.T) {
 	}
 }
 
-func ExampleWriteHistory() {
+// This example demonstrates a way to retrieve the current
+// history buffer without using a file.
+func ExampleState_WriteHistory() {
 	var s State
 	s.AppendHistory("foo")
 	s.AppendHistory("bar")
 
 	buf := new(bytes.Buffer)
 	_, err := s.WriteHistory(buf)
-	if err != nil {
-		history := strings.Split(buf.String(), "\n")
+	if err == nil {
+		history := strings.Split(strings.TrimSpace(buf.String()), "\n")
 		for i, line := range history {
-			fmt.Println("History entry ", i, ": ", line)
+			fmt.Println("History entry", i, ":", line)
 		}
 	}
+	// Output:
+	// History entry 0 : foo
+	// History entry 1 : bar
 }
