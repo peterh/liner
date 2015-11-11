@@ -868,6 +868,19 @@ mainLoop:
 				pos = 0
 			case end: // End of line
 				pos = len(line)
+			case winch: // Window change
+				if s.multiLineMode {
+					if s.maxRows-s.cursorRows > 0 {
+						s.moveDown(s.maxRows - s.cursorRows)
+					}
+					for i := 0; i < s.maxRows-1; i++ {
+						s.cursorPos(0)
+						s.eraseLine()
+						s.moveUp(1)
+					}
+					s.maxRows = 1
+					s.cursorRows = 1
+				}
 			}
 			s.refresh(p, line, pos)
 		}
