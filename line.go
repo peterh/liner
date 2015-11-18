@@ -215,7 +215,7 @@ func (s *State) refreshMultiLine(prompt []rune, buf []rune, pos int) error {
 	return nil
 }
 
-func (s *State) refreshMultiLineCancelled(prompt []rune, buf []rune, pos int) {
+func (s *State) resetMultiLine(prompt []rune, buf []rune, pos int) {
 	columns := countMultiLineGlyphs(prompt, s.columns, 0)
 	columns = countMultiLineGlyphs(buf[:pos], s.columns, columns)
 	columns += 2 // ^C
@@ -596,6 +596,9 @@ mainLoop:
 		case rune:
 			switch v {
 			case cr, lf:
+				if s.multiLineMode {
+					s.resetMultiLine(p, line, pos)
+				}
 				fmt.Println()
 				break mainLoop
 			case ctrlA: // Start of line
@@ -698,7 +701,7 @@ mainLoop:
 			case ctrlC: // reset
 				fmt.Println("^C")
 				if s.multiLineMode {
-					s.refreshMultiLineCancelled(p, line, pos)
+					s.resetMultiLine(p, line, pos)
 				}
 				if s.ctrlCAborts {
 					return "", ErrPromptAborted
@@ -946,6 +949,9 @@ mainLoop:
 		case rune:
 			switch v {
 			case cr, lf:
+				if s.multiLineMode {
+					s.resetMultiLine(p, line, pos)
+				}
 				fmt.Println()
 				break mainLoop
 			case ctrlD: // del
@@ -971,7 +977,7 @@ mainLoop:
 			case ctrlC:
 				fmt.Println("^C")
 				if s.multiLineMode {
-					s.refreshMultiLineCancelled(p, line, pos)
+					s.resetMultiLine(p, line, pos)
 				}
 				if s.ctrlCAborts {
 					return "", ErrPromptAborted
