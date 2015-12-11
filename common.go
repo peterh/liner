@@ -177,7 +177,7 @@ func (s *State) SetCompleter(f Completer) {
 		return
 	}
 	s.completer = func(line string, pos int) (string, []string, string) {
-		return "", f(line[:pos]), line[pos:]
+		return "", f(string([]rune(line)[:pos])), string([]rune(line)[pos:])
 	}
 }
 
