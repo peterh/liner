@@ -299,6 +299,7 @@ func (s *State) printedTabs(items []string) func(tabDirection) (string, error) {
 		if numTabs == 2 {
 			if len(items) > 100 {
 				fmt.Printf("\nDisplay all %d possibilities? (y or n) ", len(items))
+			prompt:
 				for {
 					next, err := s.readNext()
 					if err != nil {
@@ -306,10 +307,13 @@ func (s *State) printedTabs(items []string) func(tabDirection) (string, error) {
 					}
 
 					if key, ok := next.(rune); ok {
-						if unicode.ToLower(key) == 'n' {
+						switch key {
+						case 'n', 'N':
 							return prefix, nil
-						} else if unicode.ToLower(key) == 'y' {
-							break
+						case 'y', 'Y':
+							break prompt
+						case ctrlC, ctrlD, cr, lf:
+							s.restartPrompt()
 						}
 					}
 				}
