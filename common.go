@@ -7,7 +7,6 @@ package liner
 
 import (
 	"bufio"
-	"bytes"
 	"container/ring"
 	"errors"
 	"fmt"
@@ -223,5 +222,5 @@ func (s *State) promptUnsupported(p string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return string(bytes.TrimSpace(linebuf)), nil
+	return string(linebuf), nil
 }
