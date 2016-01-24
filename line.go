@@ -574,10 +574,6 @@ func (s *State) Prompt(prompt string) (string, error) {
 	s.historyMutex.RLock()
 	defer s.historyMutex.RUnlock()
 
-	s.startPrompt()
-	defer s.stopPrompt()
-	s.getColumns()
-
 	fmt.Print(prompt)
 	p := []rune(prompt)
 	var line []rune
@@ -587,11 +583,21 @@ func (s *State) Prompt(prompt string) (string, error) {
 	historyPos := len(prefixHistory)
 	historyAction := false // used to mark history related actions
 	killAction := 0        // used to mark kill related actions
+
+	defer s.stopPrompt()
+
+restart:
+	s.startPrompt()
+	s.getColumns()
+
 mainLoop:
 	for {
 		next, err := s.readNext()
 	haveNext:
 		if err != nil {
+			if s.shouldRestart != nil && s.shouldRestart(err) {
+				goto restart
+			}
 			return "", err
 		}
 
@@ -933,8 +939,10 @@ func (s *State) PasswordPrompt(prompt string) (string, error) {
 		return "", ErrNotTerminalOutput
 	}
 
-	s.startPrompt()
 	defer s.stopPrompt()
+
+restart:
+	s.startPrompt()
 	s.getColumns()
 
 	fmt.Print(prompt)
@@ -946,6 +954,9 @@ mainLoop:
 	for {
 		next, err := s.readNext()
 		if err != nil {
+			if s.shouldRestart != nil && s.shouldRestart(err) {
+				goto restart
+			}
 			return "", err
 		}
 
