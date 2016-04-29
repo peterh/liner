@@ -56,6 +56,9 @@ func (s *State) getColumns() bool {
 		return false
 	}
 	s.columns = int(ws.col)
+	if cursorColumn && s.columns > 1 {
+		s.columns--
+	}
 	return true
 }
 
