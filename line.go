@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"regexp"
 	"strings"
 	"unicode"
 	"unicode/utf8"
@@ -104,7 +105,7 @@ func (s *State) refreshSingleLine(prompt []rune, buf []rune, pos int) error {
 		return err
 	}
 
-	pLen := countGlyphs(prompt)
+	pLen := countGlyphs([]rune(regexp.MustCompile("[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]").ReplaceAllString(string(prompt), ""))) // Remove ANSI escape codes, at least most of them, regex took from https://github.com/chalk/ansi-regex/blob/master/index.js#L3
 	bLen := countGlyphs(buf)
 	pos = countGlyphs(buf[:pos])
 	if pLen+bLen < s.columns {
@@ -812,7 +813,8 @@ mainLoop:
 			case 0, 28, 29, 30, 31:
 				fmt.Print(beep)
 			default:
-				if pos == len(line) && !s.multiLineMode && countGlyphs(p)+countGlyphs(line) < s.columns-1 {
+				pLen:=countGlyphs([]rune(regexp.MustCompile("[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]").ReplaceAllString(string(prompt), ""))) // Remove ANSI escape codes, at least most of them, regex took from https://github.com/chalk/ansi-regex/blob/master/index.js#L3
+				if pos == len(line) && !s.multiLineMode && pLen+countGlyphs(line) < s.columns-1 {
 					line = append(line, v)
 					fmt.Printf("%c", v)
 					pos++
