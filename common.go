@@ -27,6 +27,7 @@ type commonState struct {
 	killRing          *ring.Ring
 	ctrlCAborts       bool
 	r                 *bufio.Reader
+	w                 io.Writer
 	tabStyle          TabStyle
 	multiLineMode     bool
 	cursorRows        int
@@ -227,7 +228,7 @@ func (s *State) SetShouldRestart(f ShouldRestart) {
 
 func (s *State) promptUnsupported(p string) (string, error) {
 	if !s.inputRedirected || !s.terminalSupported {
-		fmt.Print(p)
+		fmt.Fprint(s.w, p)
 	}
 	linebuf, _, err := s.r.ReadLine()
 	if err != nil {

@@ -23,6 +23,8 @@ const (
 
 type termios struct {
 	syscall.Termios
+	InputFD  int
+	OutputFD int
 }
 
 const cursorColumn = false

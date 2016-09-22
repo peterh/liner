@@ -13,34 +13,34 @@ import (
 func (s *State) cursorPos(x int) {
 	if s.useCHA {
 		// 'G' is "Cursor Character Absolute (CHA)"
-		fmt.Printf("\x1b[%dG", x+1)
+		fmt.Fprintf(s.w, "\x1b[%dG", x+1)
 	} else {
 		// 'C' is "Cursor Forward (CUF)"
-		fmt.Print("\r")
+		fmt.Fprint(s.w, "\r")
 		if x > 0 {
-			fmt.Printf("\x1b[%dC", x)
+			fmt.Fprintf(s.w, "\x1b[%dC", x)
 		}
 	}
 }
 
 func (s *State) eraseLine() {
-	fmt.Print("\x1b[0K")
+	fmt.Fprint(s.w, "\x1b[0K")
 }
 
 func (s *State) eraseScreen() {
-	fmt.Print("\x1b[H\x1b[2J")
+	fmt.Fprint(s.w, "\x1b[H\x1b[2J")
 }
 
 func (s *State) moveUp(lines int) {
-	fmt.Printf("\x1b[%dA", lines)
+	fmt.Fprintf(s.w, "\x1b[%dA", lines)
 }
 
 func (s *State) moveDown(lines int) {
-	fmt.Printf("\x1b[%dB", lines)
+	fmt.Fprintf(s.w, "\x1b[%dB", lines)
 }
 
 func (s *State) emitNewLine() {
-	fmt.Print("\n")
+	fmt.Fprint(s.w, "\n")
 }
 
 type winSize struct {
@@ -50,7 +50,7 @@ type winSize struct {
 
 func (s *State) getColumns() bool {
 	var ws winSize
-	ok, _, _ := syscall.Syscall(syscall.SYS_IOCTL, uintptr(syscall.Stdout),
+	ok, _, _ := syscall.Syscall(syscall.SYS_IOCTL, uintptr(s.origMode.OutputFD),
 		syscall.TIOCGWINSZ, uintptr(unsafe.Pointer(&ws)))
 	if int(ok) < 0 {
 		return false
