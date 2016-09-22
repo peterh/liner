@@ -3,6 +3,8 @@ package liner
 import (
 	"bytes"
 	"fmt"
+	"io"
+	"io/ioutil"
 	"strings"
 	"testing"
 )
@@ -143,4 +145,49 @@ func ExampleState_WriteHistory() {
 	// Output:
 	// History entry 0 : foo
 	// History entry 1 : bar
+}
+
+func BenchmarkInput1(b *testing.B)    { benchWithInput(b, 1) }
+func BenchmarkInput10(b *testing.B)   { benchWithInput(b, 10) }
+func BenchmarkInput100(b *testing.B)  { benchWithInput(b, 100) }
+func BenchmarkInput1000(b *testing.B) { benchWithInput(b, 1000) }
+
+func benchWithInput(b *testing.B, lineLength int) {
+	inpR, inpW := io.Pipe()
+	outR, outW := io.Pipe()
+
+	s := newLiner(inpR, outW, -1, -1)
+	s.inputRedirected = false
+	s.outputRedirected = false
+	s.terminalSupported = true
+
+	go func() {
+		// discard any output from the prompt reader
+		io.Copy(ioutil.Discard, outR)
+	}()
+
+	buf := bytes.Buffer{}
+	for i := 0; i < lineLength; i++ {
+		buf.WriteByte('A')
+	}
+	buf.WriteByte('\n')
+	go func() {
+		for i := 0; i < b.N; i++ {
+			inpW.Write(buf.Bytes())
+		}
+	}()
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		line, err := s.Prompt("test")
+		if err != nil {
+			b.Errorf("expected no errrors, got %s", err)
+		}
+		if len(line) != lineLength {
+			b.Errorf("expected to read %d bytes, got %d", b.N, len(line))
+		}
+	}
+	b.StopTimer()
+	inpW.Close()
+	outW.Close()
 }

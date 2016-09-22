@@ -99,7 +99,7 @@ func (s *State) refresh(prompt []rune, buf []rune, pos int) error {
 
 func (s *State) refreshSingleLine(prompt []rune, buf []rune, pos int) error {
 	s.cursorPos(0)
-	_, err := fmt.Print(string(prompt))
+	_, err := fmt.Fprint(s.w, string(prompt))
 	if err != nil {
 		return err
 	}
@@ -108,7 +108,7 @@ func (s *State) refreshSingleLine(prompt []rune, buf []rune, pos int) error {
 	bLen := countGlyphs(buf)
 	pos = countGlyphs(buf[:pos])
 	if pLen+bLen < s.columns {
-		_, err = fmt.Print(string(buf))
+		_, err = fmt.Fprint(s.w, string(buf))
 		s.eraseLine()
 		s.cursorPos(pLen + pos)
 	} else {
@@ -139,11 +139,11 @@ func (s *State) refreshSingleLine(prompt []rune, buf []rune, pos int) error {
 
 		// Output
 		if start > 0 {
-			fmt.Print("{")
+			fmt.Fprint(s.w, "{")
 		}
-		fmt.Print(string(line))
+		fmt.Fprint(s.w, string(line))
 		if end < bLen {
-			fmt.Print("}")
+			fmt.Fprint(s.w, "}")
 		}
 
 		// Set cursor position
@@ -184,10 +184,10 @@ func (s *State) refreshMultiLine(prompt []rune, buf []rune, pos int) error {
 	s.eraseLine()
 
 	/* Write the prompt and the current buffer content */
-	if _, err := fmt.Print(string(prompt)); err != nil {
+	if _, err := fmt.Fprint(s.w, string(prompt)); err != nil {
 		return err
 	}
-	if _, err := fmt.Print(string(buf)); err != nil {
+	if _, err := fmt.Fprint(s.w, string(buf)); err != nil {
 		return err
 	}
 
@@ -222,7 +222,7 @@ func (s *State) resetMultiLine(prompt []rune, buf []rune, pos int) {
 	cursorRows := (columns + s.columns) / s.columns
 	if s.maxRows-cursorRows > 0 {
 		for i := 0; i < s.maxRows-cursorRows; i++ {
-			fmt.Println() // always moves the cursor down or scrolls the window up as needed
+			fmt.Fprintln(s.w) // always moves the cursor down or scrolls the window up as needed
 		}
 	}
 	s.maxRows = 1
@@ -298,7 +298,7 @@ func (s *State) printedTabs(items []string) func(tabDirection) (string, error) {
 
 		if numTabs == 2 {
 			if len(items) > 100 {
-				fmt.Printf("\nDisplay all %d possibilities? (y or n) ", len(items))
+				fmt.Fprintf(s.w, "\nDisplay all %d possibilities? (y or n) ", len(items))
 			prompt:
 				for {
 					next, err := s.readNext()
@@ -318,7 +318,7 @@ func (s *State) printedTabs(items []string) func(tabDirection) (string, error) {
 					}
 				}
 			}
-			fmt.Println("")
+			fmt.Fprintln(s.w, "")
 
 			numColumns, numRows, maxWidth := calculateColumns(s.columns, items)
 
@@ -326,13 +326,13 @@ func (s *State) printedTabs(items []string) func(tabDirection) (string, error) {
 				for j := 0; j < numColumns*numRows; j += numRows {
 					if i+j < len(items) {
 						if maxWidth > 0 {
-							fmt.Printf("%-*.[1]*s", maxWidth, items[i+j])
+							fmt.Fprintf(s.w, "%-*.[1]*s", maxWidth, items[i+j])
 						} else {
-							fmt.Printf("%v ", items[i+j])
+							fmt.Fprintf(s.w, "%v ", items[i+j])
 						}
 					}
 				}
-				fmt.Println("")
+				fmt.Fprintln(s.w, "")
 			}
 		} else {
 			numTabs++
@@ -423,7 +423,7 @@ func (s *State) reverseISearch(origLine []rune, origPos int) ([]rune, int, inter
 					foundLine = history[historyPos]
 					foundPos = positions[historyPos]
 				} else {
-					fmt.Print(beep)
+					fmt.Fprint(s.w, beep)
 				}
 			case ctrlS: // Search forward
 				if historyPos < len(history)-1 && historyPos >= 0 {
@@ -431,11 +431,11 @@ func (s *State) reverseISearch(origLine []rune, origPos int) ([]rune, int, inter
 					foundLine = history[historyPos]
 					foundPos = positions[historyPos]
 				} else {
-					fmt.Print(beep)
+					fmt.Fprint(s.w, beep)
 				}
 			case ctrlH, bs: // Backspace
 				if pos <= 0 {
-					fmt.Print(beep)
+					fmt.Fprint(s.w, beep)
 				} else {
 					n := len(getSuffixGlyphs(line[:pos], 1))
 					line = append(line[:pos-n], line[pos:]...)
@@ -584,7 +584,7 @@ func (s *State) PromptWithSuggestion(prompt string, text string, pos int) (strin
 	s.historyMutex.RLock()
 	defer s.historyMutex.RUnlock()
 
-	fmt.Print(prompt)
+	fmt.Fprint(s.w, prompt)
 	p := []rune(prompt)
 	var line = []rune(text)
 	historyEnd := ""
@@ -626,7 +626,7 @@ mainLoop:
 				if s.multiLineMode {
 					s.resetMultiLine(p, line, pos)
 				}
-				fmt.Println()
+				fmt.Fprintln(s.w)
 				break mainLoop
 			case ctrlA: // Start of line
 				pos = 0
@@ -639,14 +639,14 @@ mainLoop:
 					pos -= len(getSuffixGlyphs(line[:pos], 1))
 					s.needRefresh = true
 				} else {
-					fmt.Print(beep)
+					fmt.Fprint(s.w, beep)
 				}
 			case ctrlF: // right
 				if pos < len(line) {
 					pos += len(getPrefixGlyphs(line[pos:], 1))
 					s.needRefresh = true
 				} else {
-					fmt.Print(beep)
+					fmt.Fprint(s.w, beep)
 				}
 			case ctrlD: // del
 				if pos == 0 && len(line) == 0 {
@@ -659,7 +659,7 @@ mainLoop:
 				s.restartPrompt()
 
 				if pos >= len(line) {
-					fmt.Print(beep)
+					fmt.Fprint(s.w, beep)
 				} else {
 					n := len(getPrefixGlyphs(line[pos:], 1))
 					line = append(line[:pos], line[pos+n:]...)
@@ -667,7 +667,7 @@ mainLoop:
 				}
 			case ctrlK: // delete remainder of line
 				if pos >= len(line) {
-					fmt.Print(beep)
+					fmt.Fprint(s.w, beep)
 				} else {
 					if killAction > 0 {
 						s.addToKillRing(line[pos:], 1) // Add in apend mode
@@ -695,7 +695,7 @@ mainLoop:
 					pos = len(line)
 					s.needRefresh = true
 				} else {
-					fmt.Print(beep)
+					fmt.Fprint(s.w, beep)
 				}
 			case ctrlN: // down
 				historyAction = true
@@ -714,11 +714,11 @@ mainLoop:
 					pos = len(line)
 					s.needRefresh = true
 				} else {
-					fmt.Print(beep)
+					fmt.Fprint(s.w, beep)
 				}
 			case ctrlT: // transpose prev glyph with glyph under cursor
 				if len(line) < 2 || pos < 1 {
-					fmt.Print(beep)
+					fmt.Fprint(s.w, beep)
 				} else {
 					if pos == len(line) {
 						pos -= len(getSuffixGlyphs(line, 1))
@@ -736,7 +736,7 @@ mainLoop:
 				s.eraseScreen()
 				s.needRefresh = true
 			case ctrlC: // reset
-				fmt.Println("^C")
+				fmt.Fprintln(s.w, "^C")
 				if s.multiLineMode {
 					s.resetMultiLine(p, line, pos)
 				}
@@ -745,11 +745,11 @@ mainLoop:
 				}
 				line = line[:0]
 				pos = 0
-				fmt.Print(prompt)
+				fmt.Fprint(s.w, prompt)
 				s.restartPrompt()
 			case ctrlH, bs: // Backspace
 				if pos <= 0 {
-					fmt.Print(beep)
+					fmt.Fprint(s.w, beep)
 				} else {
 					n := len(getSuffixGlyphs(line[:pos], 1))
 					line = append(line[:pos-n], line[pos:]...)
@@ -769,7 +769,7 @@ mainLoop:
 				s.needRefresh = true
 			case ctrlW: // Erase word
 				if pos == 0 {
-					fmt.Print(beep)
+					fmt.Fprint(s.w, beep)
 					break
 				}
 				// Remove whitespace to the left
@@ -822,13 +822,13 @@ mainLoop:
 				fallthrough
 			// Catch unhandled control codes (anything <= 31)
 			case 0, 28, 29, 30, 31:
-				fmt.Print(beep)
+				fmt.Fprint(s.w, beep)
 			default:
 				if pos == len(line) && !s.multiLineMode &&
 					len(p)+len(line) < s.columns*4 && // Avoid countGlyphs on large lines
 					countGlyphs(p)+countGlyphs(line) < s.columns-1 {
 					line = append(line, v)
-					fmt.Printf("%c", v)
+					fmt.Fprintf(s.w, "%c", v)
 					pos++
 				} else {
 					line = append(line[:pos], append([]rune{v}, line[pos:]...)...)
@@ -840,7 +840,7 @@ mainLoop:
 			switch v {
 			case del:
 				if pos >= len(line) {
-					fmt.Print(beep)
+					fmt.Fprint(s.w, beep)
 				} else {
 					n := len(getPrefixGlyphs(line[pos:], 1))
 					line = append(line[:pos], line[pos+n:]...)
@@ -849,7 +849,7 @@ mainLoop:
 				if pos > 0 {
 					pos -= len(getSuffixGlyphs(line[:pos], 1))
 				} else {
-					fmt.Print(beep)
+					fmt.Fprint(s.w, beep)
 				}
 			case wordLeft, altB:
 				if pos > 0 {
@@ -870,13 +870,13 @@ mainLoop:
 						}
 					}
 				} else {
-					fmt.Print(beep)
+					fmt.Fprint(s.w, beep)
 				}
 			case right:
 				if pos < len(line) {
 					pos += len(getPrefixGlyphs(line[pos:], 1))
 				} else {
-					fmt.Print(beep)
+					fmt.Fprint(s.w, beep)
 				}
 			case wordRight, altF:
 				if pos < len(line) {
@@ -897,7 +897,7 @@ mainLoop:
 						}
 					}
 				} else {
-					fmt.Print(beep)
+					fmt.Fprint(s.w, beep)
 				}
 			case up:
 				historyAction = true
@@ -914,7 +914,7 @@ mainLoop:
 					line = []rune(historyPrefix[historyPos])
 					pos = len(line)
 				} else {
-					fmt.Print(beep)
+					fmt.Fprint(s.w, beep)
 				}
 			case down:
 				historyAction = true
@@ -932,7 +932,7 @@ mainLoop:
 					}
 					pos = len(line)
 				} else {
-					fmt.Print(beep)
+					fmt.Fprint(s.w, beep)
 				}
 			case home: // Start of line
 				pos = 0
@@ -991,7 +991,7 @@ restart:
 	s.startPrompt()
 	s.getColumns()
 
-	fmt.Print(prompt)
+	fmt.Fprint(s.w, prompt)
 	p := []rune(prompt)
 	var line []rune
 	pos := 0
@@ -1013,7 +1013,7 @@ mainLoop:
 				if s.multiLineMode {
 					s.resetMultiLine(p, line, pos)
 				}
-				fmt.Println()
+				fmt.Fprintln(s.w)
 				break mainLoop
 			case ctrlD: // del
 				if pos == 0 && len(line) == 0 {
@@ -1029,14 +1029,14 @@ mainLoop:
 				s.refresh(p, []rune{}, 0)
 			case ctrlH, bs: // Backspace
 				if pos <= 0 {
-					fmt.Print(beep)
+					fmt.Fprint(s.w, beep)
 				} else {
 					n := len(getSuffixGlyphs(line[:pos], 1))
 					line = append(line[:pos-n], line[pos:]...)
 					pos -= n
 				}
 			case ctrlC:
-				fmt.Println("^C")
+				fmt.Fprintln(s.w, "^C")
 				if s.multiLineMode {
 					s.resetMultiLine(p, line, pos)
 				}
@@ -1045,7 +1045,7 @@ mainLoop:
 				}
 				line = line[:0]
 				pos = 0
-				fmt.Print(prompt)
+				fmt.Fprint(s.w, prompt)
 				s.restartPrompt()
 			// Unused keys
 			case esc, tab, ctrlA, ctrlB, ctrlE, ctrlF, ctrlG, ctrlK, ctrlN, ctrlO, ctrlP, ctrlQ, ctrlR, ctrlS,
@@ -1053,7 +1053,7 @@ mainLoop:
 				fallthrough
 			// Catch unhandled control codes (anything <= 31)
 			case 0, 28, 29, 30, 31:
-				fmt.Print(beep)
+				fmt.Fprint(s.w, beep)
 			default:
 				line = append(line[:pos], append([]rune{v}, line[pos:]...)...)
 				pos++
