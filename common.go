@@ -58,7 +58,7 @@ var ErrPromptAborted = errors.New("prompt aborted")
 // platform is normally supported, but stdout has been redirected
 var ErrNotTerminalOutput = errors.New("standard output is not a terminal")
 
-// Max elements to save on the killring
+// KillRingMax is the max number of elements to save on the killring.
 const KillRingMax = 60
 
 // HistoryLimit is the maximum number of entries saved in the scrollback history.
