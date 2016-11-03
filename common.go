@@ -58,6 +58,11 @@ var ErrPromptAborted = errors.New("prompt aborted")
 // platform is normally supported, but stdout has been redirected
 var ErrNotTerminalOutput = errors.New("standard output is not a terminal")
 
+// ErrInvalidPrompt is returned from Prompt or PasswordPrompt if the
+// prompt contains any unprintable runes (including substrings that could
+// be colour codes on some platforms).
+var ErrInvalidPrompt = errors.New("invalid prompt")
+
 // KillRingMax is the max number of elements to save on the killring.
 const KillRingMax = 60
 
