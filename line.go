@@ -588,8 +588,9 @@ func (s *State) PromptWithSuggestion(prompt string, text string, pos int) (strin
 	p := []rune(prompt)
 	var line = []rune(text)
 	historyEnd := ""
-	historyPrefix := s.getHistoryByPrefix(string(line))
-	historyPos := len(historyPrefix)
+	var historyPrefix []string
+	historyPos := 0
+	historyStale := true
 	historyAction := false // used to mark history related actions
 	killAction := 0        // used to mark kill related actions
 
@@ -680,6 +681,11 @@ mainLoop:
 				}
 			case ctrlP: // up
 				historyAction = true
+				if historyStale {
+					historyPrefix = s.getHistoryByPrefix(string(line))
+					historyPos = len(historyPrefix)
+					historyStale = false
+				}
 				if historyPos > 0 {
 					if historyPos == len(historyPrefix) {
 						historyEnd = string(line)
@@ -693,6 +699,11 @@ mainLoop:
 				}
 			case ctrlN: // down
 				historyAction = true
+				if historyStale {
+					historyPrefix = s.getHistoryByPrefix(string(line))
+					historyPos = len(historyPrefix)
+					historyStale = false
+				}
 				if historyPos < len(historyPrefix) {
 					historyPos++
 					if historyPos == len(historyPrefix) {
@@ -888,6 +899,11 @@ mainLoop:
 				}
 			case up:
 				historyAction = true
+				if historyStale {
+					historyPrefix = s.getHistoryByPrefix(string(line))
+					historyPos = len(historyPrefix)
+					historyStale = false
+				}
 				if historyPos > 0 {
 					if historyPos == len(historyPrefix) {
 						historyEnd = string(line)
@@ -900,6 +916,11 @@ mainLoop:
 				}
 			case down:
 				historyAction = true
+				if historyStale {
+					historyPrefix = s.getHistoryByPrefix(string(line))
+					historyPos = len(historyPrefix)
+					historyStale = false
+				}
 				if historyPos < len(historyPrefix) {
 					historyPos++
 					if historyPos == len(historyPrefix) {
@@ -935,8 +956,7 @@ mainLoop:
 			s.refresh(p, line, pos)
 		}
 		if !historyAction {
-			historyPrefix = s.getHistoryByPrefix(string(line))
-			historyPos = len(historyPrefix)
+			historyStale = true
 		}
 		if killAction > 0 {
 			killAction--
