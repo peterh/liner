@@ -92,9 +92,8 @@ const (
 func (s *State) refresh(prompt []rune, buf []rune, pos int) error {
 	if s.multiLineMode {
 		return s.refreshMultiLine(prompt, buf, pos)
-	} else {
-		return s.refreshSingleLine(prompt, buf, pos)
 	}
+	return s.refreshSingleLine(prompt, buf, pos)
 }
 
 func (s *State) refreshSingleLine(prompt []rune, buf []rune, pos int) error {
@@ -387,8 +386,6 @@ func (s *State) tabComplete(p []rune, line []rune, pos int) ([]rune, int, interf
 		}
 		return []rune(head + pick + tail), hl + utf8.RuneCountInString(pick), next, nil
 	}
-	// Not reached
-	return line, pos, rune(esc), nil
 }
 
 // reverse intelligent search, implements a bash-like history search.
@@ -556,8 +553,6 @@ func (s *State) yank(p []rune, text []rune, pos int) ([]rune, int, interface{}, 
 			}
 		}
 	}
-
-	return line, pos, esc, nil
 }
 
 // Prompt displays p and returns a line of user input, not including a trailing

@@ -121,8 +121,6 @@ func (s *State) nextPending(timeout <-chan time.Time) (rune, error) {
 		s.pending = s.pending[1:]
 		return rv, errTimedOut
 	}
-	// not reached
-	return 0, nil
 }
 
 func (s *State) readNext() (interface{}, error) {
