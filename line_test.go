@@ -147,10 +147,12 @@ func ExampleState_WriteHistory() {
 	// History entry 1 : bar
 }
 
-func BenchmarkInput1(b *testing.B)    { benchWithInput(b, 1) }
-func BenchmarkInput10(b *testing.B)   { benchWithInput(b, 10) }
-func BenchmarkInput100(b *testing.B)  { benchWithInput(b, 100) }
-func BenchmarkInput1000(b *testing.B) { benchWithInput(b, 1000) }
+func BenchmarkInput1(b *testing.B)      { benchWithInput(b, 1) }
+func BenchmarkInput10(b *testing.B)     { benchWithInput(b, 10) }
+func BenchmarkInput100(b *testing.B)    { benchWithInput(b, 100) }
+func BenchmarkInput1000(b *testing.B)   { benchWithInput(b, 1000) }
+func BenchmarkInput10000(b *testing.B)  { benchWithInput(b, 10000) }
+func BenchmarkInput100000(b *testing.B) { benchWithInput(b, 100000) }
 
 func benchWithInput(b *testing.B, lineLength int) {
 	inpR, inpW := io.Pipe()
