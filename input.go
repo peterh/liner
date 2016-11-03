@@ -5,6 +5,7 @@ package liner
 import (
 	"bufio"
 	"errors"
+	"io"
 	"os"
 	"os/signal"
 	"strconv"
@@ -32,16 +33,28 @@ type State struct {
 // NewLiner initializes a new *State, and sets the terminal into raw mode. To
 // restore the terminal to its previous state, call State.Close().
 func NewLiner() *State {
+	return newLiner(os.Stdin, os.Stdout, syscall.Stdin, syscall.Stdout)
+}
+
+func newLiner(r io.Reader, w io.Writer, inFD int, outFD int) *State {
 	var s State
-	s.r = bufio.NewReader(os.Stdin)
+	s.r = bufio.NewReader(r)
+	s.w = w
 
 	s.terminalSupported = TerminalSupported()
-	if m, err := TerminalMode(); err == nil {
+
+	// ensure that the user specified file descriptors get used in all cases
+	s.origMode.InputFD = inFD
+	s.origMode.OutputFD = outFD
+	s.defaultMode.InputFD = inFD
+	s.defaultMode.OutputFD = outFD
+
+	if m, err := terminalMode(inFD, outFD); err == nil {
 		s.origMode = *m.(*termios)
 	} else {
 		s.inputRedirected = true
 	}
-	if _, err := getMode(syscall.Stdout); err != 0 {
+	if _, err := getMode(inFD, outFD); err != 0 {
 		s.outputRedirected = true
 	}
 	if s.inputRedirected && s.outputRedirected {
@@ -72,7 +85,7 @@ var errTimedOut = errors.New("timeout")
 
 func (s *State) startPrompt() {
 	if s.terminalSupported {
-		if m, err := TerminalMode(); err == nil {
+		if m, err := terminalMode(s.origMode.InputFD, s.origMode.OutputFD); err == nil {
 			s.defaultMode = *m.(*termios)
 			mode := s.defaultMode
 			mode.Lflag &^= isig

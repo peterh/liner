@@ -29,13 +29,15 @@ const (
 )
 
 type termios struct {
-	Iflag  uintptr
-	Oflag  uintptr
-	Cflag  uintptr
-	Lflag  uintptr
-	Cc     [20]byte
-	Ispeed uintptr
-	Ospeed uintptr
+	Iflag    uintptr
+	Oflag    uintptr
+	Cflag    uintptr
+	Lflag    uintptr
+	Cc       [20]byte
+	Ispeed   uintptr
+	Ospeed   uintptr
+	InputFD  int
+	OutputFD int
 }
 
 // Terminal.app needs a column for the cursor when the input line is at the
