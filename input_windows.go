@@ -263,7 +263,6 @@ func (s *State) readNext() (interface{}, error) {
 		}
 		return s.key, nil
 	}
-	return unknown, nil
 }
 
 // Close returns the terminal to its previous mode
