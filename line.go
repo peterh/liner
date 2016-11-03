@@ -588,8 +588,8 @@ func (s *State) PromptWithSuggestion(prompt string, text string, pos int) (strin
 	p := []rune(prompt)
 	var line = []rune(text)
 	historyEnd := ""
-	prefixHistory := s.getHistoryByPrefix(string(line))
-	historyPos := len(prefixHistory)
+	historyPrefix := s.getHistoryByPrefix(string(line))
+	historyPos := len(historyPrefix)
 	historyAction := false // used to mark history related actions
 	killAction := 0        // used to mark kill related actions
 
@@ -681,11 +681,11 @@ mainLoop:
 			case ctrlP: // up
 				historyAction = true
 				if historyPos > 0 {
-					if historyPos == len(prefixHistory) {
+					if historyPos == len(historyPrefix) {
 						historyEnd = string(line)
 					}
 					historyPos--
-					line = []rune(prefixHistory[historyPos])
+					line = []rune(historyPrefix[historyPos])
 					pos = len(line)
 					s.needRefresh = true
 				} else {
@@ -693,12 +693,12 @@ mainLoop:
 				}
 			case ctrlN: // down
 				historyAction = true
-				if historyPos < len(prefixHistory) {
+				if historyPos < len(historyPrefix) {
 					historyPos++
-					if historyPos == len(prefixHistory) {
+					if historyPos == len(historyPrefix) {
 						line = []rune(historyEnd)
 					} else {
-						line = []rune(prefixHistory[historyPos])
+						line = []rune(historyPrefix[historyPos])
 					}
 					pos = len(line)
 					s.needRefresh = true
@@ -889,23 +889,23 @@ mainLoop:
 			case up:
 				historyAction = true
 				if historyPos > 0 {
-					if historyPos == len(prefixHistory) {
+					if historyPos == len(historyPrefix) {
 						historyEnd = string(line)
 					}
 					historyPos--
-					line = []rune(prefixHistory[historyPos])
+					line = []rune(historyPrefix[historyPos])
 					pos = len(line)
 				} else {
 					fmt.Print(beep)
 				}
 			case down:
 				historyAction = true
-				if historyPos < len(prefixHistory) {
+				if historyPos < len(historyPrefix) {
 					historyPos++
-					if historyPos == len(prefixHistory) {
+					if historyPos == len(historyPrefix) {
 						line = []rune(historyEnd)
 					} else {
-						line = []rune(prefixHistory[historyPos])
+						line = []rune(historyPrefix[historyPos])
 					}
 					pos = len(line)
 				} else {
@@ -935,8 +935,8 @@ mainLoop:
 			s.refresh(p, line, pos)
 		}
 		if !historyAction {
-			prefixHistory = s.getHistoryByPrefix(string(line))
-			historyPos = len(prefixHistory)
+			historyPrefix = s.getHistoryByPrefix(string(line))
+			historyPos = len(historyPrefix)
 		}
 		if killAction > 0 {
 			killAction--
