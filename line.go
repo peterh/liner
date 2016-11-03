@@ -931,7 +931,7 @@ mainLoop:
 			}
 			s.needRefresh = true
 		}
-		if s.needRefresh {
+		if s.needRefresh && !s.inputWaiting() {
 			s.refresh(p, line, pos)
 		}
 		if !historyAction {
