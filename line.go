@@ -90,6 +90,10 @@ const (
 )
 
 func (s *State) refresh(prompt []rune, buf []rune, pos int) error {
+	if s.columns == 0 {
+		return ErrPromptUnsupported
+	}
+
 	s.needRefresh = false
 	if s.multiLineMode {
 		return s.refreshMultiLine(prompt, buf, pos)
@@ -624,7 +628,9 @@ mainLoop:
 			switch v {
 			case cr, lf:
 				if s.needRefresh {
-					s.refresh(p, line, pos)
+					if err := s.refresh(p, line, pos); err != nil {
+						return "", err
+					}
 				}
 				if s.multiLineMode {
 					s.resetMultiLine(p, line, pos)

@@ -64,6 +64,10 @@ var ErrNotTerminalOutput = errors.New("standard output is not a terminal")
 // be colour codes on some platforms).
 var ErrInvalidPrompt = errors.New("invalid prompt")
 
+// ErrPromptUnsupported is returned when a prompt cannot be used within the
+// current terminal.
+var ErrPromptUnsupported = errors.New("prompt unsupported")
+
 // KillRingMax is the max number of elements to save on the killring.
 const KillRingMax = 60
 
