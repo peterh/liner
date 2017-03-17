@@ -91,7 +91,7 @@ const (
 
 func (s *State) refresh(prompt []rune, buf []rune, pos int) error {
 	if s.columns == 0 {
-		return ErrPromptUnsupported
+		return ErrInternal
 	}
 
 	s.needRefresh = false

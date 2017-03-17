@@ -64,9 +64,10 @@ var ErrNotTerminalOutput = errors.New("standard output is not a terminal")
 // be colour codes on some platforms).
 var ErrInvalidPrompt = errors.New("invalid prompt")
 
-// ErrPromptUnsupported is returned when a prompt cannot be used within the
-// current terminal.
-var ErrPromptUnsupported = errors.New("prompt unsupported")
+// ErrInternal is returned when liner experiences an error that it cannot
+// handle. For example, if the number of colums becomes zero during an
+// active call to Prompt
+var ErrInternal = errors.New("liner: internal error")
 
 // KillRingMax is the max number of elements to save on the killring.
 const KillRingMax = 60
