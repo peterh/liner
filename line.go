@@ -3,10 +3,12 @@
 package liner
 
 import (
+	"bufio"
 	"container/ring"
 	"errors"
 	"fmt"
 	"io"
+	"os"
 	"strings"
 	"unicode"
 	"unicode/utf8"
@@ -581,6 +583,11 @@ func (s *State) PromptWithSuggestion(prompt string, text string, pos int) (strin
 	if s.inputRedirected || !s.terminalSupported {
 		return s.promptUnsupported(prompt)
 	}
+	p := []rune(prompt)
+	const minWorkingSpace = 10
+	if s.columns < countGlyphs(p)+minWorkingSpace {
+		return s.tooNarrow(prompt)
+	}
 	if s.outputRedirected {
 		return "", ErrNotTerminalOutput
 	}
@@ -589,7 +596,6 @@ func (s *State) PromptWithSuggestion(prompt string, text string, pos int) (strin
 	defer s.historyMutex.RUnlock()
 
 	fmt.Print(prompt)
-	p := []rune(prompt)
 	var line = []rune(text)
 	historyEnd := ""
 	var historyPrefix []string
@@ -984,7 +990,7 @@ func (s *State) PasswordPrompt(prompt string) (string, error) {
 			return "", ErrInvalidPrompt
 		}
 	}
-	if !s.terminalSupported {
+	if !s.terminalSupported || s.columns == 0 {
 		return "", errors.New("liner: function not supported in this terminal")
 	}
 	if s.inputRedirected {
@@ -994,6 +1000,12 @@ func (s *State) PasswordPrompt(prompt string) (string, error) {
 		return "", ErrNotTerminalOutput
 	}
 
+	p := []rune(prompt)
+	const minWorkingSpace = 1
+	if s.columns < countGlyphs(p)+minWorkingSpace {
+		return s.tooNarrow(prompt)
+	}
+
 	defer s.stopPrompt()
 
 restart:
@@ -1001,7 +1013,6 @@ restart:
 	s.getColumns()
 
 	fmt.Print(prompt)
-	p := []rune(prompt)
 	var line []rune
 	pos := 0
 
@@ -1073,4 +1084,21 @@ mainLoop:
 		}
 	}
 	return string(line), nil
+}
+
+func (s *State) tooNarrow(prompt string) (string, error) {
+	// Docker and OpenWRT and etc sometimes return 0 column width
+	// Reset mode temporarily. Restore baked mode in case the terminal
+	// is wide enough for the next Prompt attempt.
+	m, merr := TerminalMode()
+	s.origMode.ApplyMode()
+	if merr == nil {
+		defer m.ApplyMode()
+	}
+	if s.r == nil {
+		// Windows does not always set s.r
+		s.r = bufio.NewReader(os.Stdin)
+		defer func() { s.r = nil }()
+	}
+	return s.promptUnsupported(prompt)
 }
