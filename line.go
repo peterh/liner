@@ -357,8 +357,8 @@ func (s *State) tabComplete(p []rune, line []rune, pos int) ([]rune, int, interf
 	}
 	hl := utf8.RuneCountInString(head)
 	if len(list) == 1 {
-		s.refresh(p, []rune(head+list[0]+tail), hl+utf8.RuneCountInString(list[0]))
-		return []rune(head + list[0] + tail), hl + utf8.RuneCountInString(list[0]), rune(esc), nil
+		err := s.refresh(p, []rune(head+list[0]+tail), hl+utf8.RuneCountInString(list[0]))
+		return []rune(head + list[0] + tail), hl + utf8.RuneCountInString(list[0]), rune(esc), err
 	}
 
 	direction := tabForward
@@ -372,7 +372,10 @@ func (s *State) tabComplete(p []rune, line []rune, pos int) ([]rune, int, interf
 		if err != nil {
 			return line, pos, rune(esc), err
 		}
-		s.refresh(p, []rune(head+pick+tail), hl+utf8.RuneCountInString(pick))
+		err = s.refresh(p, []rune(head+pick+tail), hl+utf8.RuneCountInString(pick))
+		if err != nil {
+			return line, pos, rune(esc), err
+		}
 
 		next, err := s.readNext()
 		if err != nil {
@@ -398,7 +401,10 @@ func (s *State) tabComplete(p []rune, line []rune, pos int) ([]rune, int, interf
 // reverse intelligent search, implements a bash-like history search.
 func (s *State) reverseISearch(origLine []rune, origPos int) ([]rune, int, interface{}, error) {
 	p := "(reverse-i-search)`': "
-	s.refresh([]rune(p), origLine, origPos)
+	err := s.refresh([]rune(p), origLine, origPos)
+	if err != nil {
+		return origLine, origPos, rune(esc), err
+	}
 
 	line := []rune{}
 	pos := 0
@@ -484,7 +490,10 @@ func (s *State) reverseISearch(origLine []rune, origPos int) ([]rune, int, inter
 		case action:
 			return []rune(foundLine), foundPos, next, err
 		}
-		s.refresh(getLine())
+		err = s.refresh(getLine())
+		if err != nil {
+			return []rune(foundLine), foundPos, rune(esc), err
+		}
 	}
 }
 
@@ -541,7 +550,10 @@ func (s *State) yank(p []rune, text []rune, pos int) ([]rune, int, interface{}, 
 		line = append(line, lineEnd...)
 
 		pos = len(lineStart) + len(value)
-		s.refresh(p, line, pos)
+		err := s.refresh(p, line, pos)
+		if err != nil {
+			return line, pos, 0, err
+		}
 
 		next, err := s.readNext()
 		if err != nil {
@@ -610,7 +622,10 @@ func (s *State) PromptWithSuggestion(prompt string, text string, pos int) (strin
 		pos = len(text)
 	}
 	if len(line) > 0 {
-		s.refresh(p, line, pos)
+		err := s.refresh(p, line, pos)
+		if err != nil {
+			return "", err
+		}
 	}
 
 restart:
@@ -634,7 +649,8 @@ mainLoop:
 			switch v {
 			case cr, lf:
 				if s.needRefresh {
-					if err := s.refresh(p, line, pos); err != nil {
+					err := s.refresh(p, line, pos)
+					if err != nil {
 						return "", err
 					}
 				}
@@ -970,7 +986,10 @@ mainLoop:
 			s.needRefresh = true
 		}
 		if s.needRefresh && !s.inputWaiting() {
-			s.refresh(p, line, pos)
+			err := s.refresh(p, line, pos)
+			if err != nil {
+				return "", err
+			}
 		}
 		if !historyAction {
 			historyStale = true
@@ -1031,7 +1050,10 @@ mainLoop:
 			switch v {
 			case cr, lf:
 				if s.needRefresh {
-					s.refresh(p, line, pos)
+					err := s.refresh(p, line, pos)
+					if err != nil {
+						return "", err
+					}
 				}
 				if s.multiLineMode {
 					s.resetMultiLine(p, line, pos)
@@ -1049,7 +1071,10 @@ mainLoop:
 				s.restartPrompt()
 			case ctrlL: // clear screen
 				s.eraseScreen()
-				s.refresh(p, []rune{}, 0)
+				err := s.refresh(p, []rune{}, 0)
+				if err != nil {
+					return "", err
+				}
 			case ctrlH, bs: // Backspace
 				if pos <= 0 {
 					fmt.Print(beep)
