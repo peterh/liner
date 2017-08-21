@@ -595,6 +595,14 @@ func (s *State) PromptWithSuggestion(prompt string, text string, pos int) (strin
 	if s.inputRedirected || !s.terminalSupported {
 		return s.promptUnsupported(prompt)
 	}
+
+	select {
+	case <-s.winch:
+		// resize happened before prompt -- update columns for tooNarrow check
+		s.getColumns()
+	default:
+	}
+
 	p := []rune(prompt)
 	const minWorkingSpace = 10
 	if s.columns < countGlyphs(p)+minWorkingSpace {
