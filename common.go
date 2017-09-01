@@ -161,7 +161,7 @@ func (s *State) getHistoryByPrefix(prefix string) (ph []string) {
 	return
 }
 
-// Returns the history lines matching the inteligent search
+// Returns the history lines matching the intelligent search
 func (s *State) getHistoryByPattern(pattern string) (ph []string, pos []int) {
 	if pattern == "" {
 		return
