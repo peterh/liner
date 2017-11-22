@@ -40,6 +40,7 @@ const (
 	f11
 	f12
 	altB
+	altD
 	altF
 	altY
 	shiftTab
@@ -969,6 +970,35 @@ mainLoop:
 				pos = 0
 			case end: // End of line
 				pos = len(line)
+			case altD: // Delete next word
+				if pos == len(line) {
+					fmt.Print(beep)
+					break
+				}
+				// Remove whitespace to the right
+				var buf []rune // Store the deleted chars in a buffer
+				for {
+					if pos == len(line) || !unicode.IsSpace(line[pos]) {
+						break
+					}
+					buf = append(buf, line[pos])
+					line = append(line[:pos], line[pos+1:]...)
+				}
+				// Remove non-whitespace to the right
+				for {
+					if pos == len(line) || unicode.IsSpace(line[pos]) {
+						break
+					}
+					buf = append(buf, line[pos])
+					line = append(line[:pos], line[pos+1:]...)
+				}
+				// Save the result on the killRing
+				if killAction > 0 {
+					s.addToKillRing(buf, 2) // Add in prepend mode
+				} else {
+					s.addToKillRing(buf, 0) // Add in normal mode
+				}
+				killAction = 2 // Mark that there was some killing
 			case winch: // Window change
 				if s.multiLineMode {
 					if s.maxRows-s.cursorRows > 0 {
