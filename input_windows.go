@@ -103,7 +103,7 @@ type key_event_record struct {
 	RepeatCount     uint16
 	VirtualKeyCode  uint16
 	VirtualScanCode uint16
-	Char            int16
+	Char            uint16
 	ControlKeyState uint32
 }
 
