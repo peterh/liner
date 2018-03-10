@@ -26,6 +26,7 @@ type commonState struct {
 	columns           int
 	killRing          *ring.Ring
 	ctrlCAborts       bool
+	ctrlCSilent       bool
 	r                 *bufio.Reader
 	tabStyle          TabStyle
 	multiLineMode     bool
@@ -226,6 +227,13 @@ type ModeApplier interface {
 // (and Prompt does not return) regardless of the value passed to SetCtrlCAborts.
 func (s *State) SetCtrlCAborts(aborts bool) {
 	s.ctrlCAborts = aborts
+}
+
+// SetCtrlCSilent disables output of the string ^C when Ctrl-C is pressed.
+// The default is false (liner will output string: ^C).
+// When true - nothing is printed when Ctrl-C is pressed.
+func (s *State) SetCtrlCSilent(silent bool) {
+	s.ctrlCSilent = silent
 }
 
 // SetMultiLineMode sets whether line is auto-wrapped. The default is false (single line).
