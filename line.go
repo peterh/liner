@@ -780,7 +780,11 @@ mainLoop:
 				s.eraseScreen()
 				s.needRefresh = true
 			case ctrlC: // reset
-				fmt.Println("^C")
+				if s.ctrlCSilent {
+					fmt.Println()
+				} else {
+					fmt.Println("^C")
+				}
 				if s.multiLineMode {
 					s.resetMultiLine(p, line, pos)
 				}
@@ -1126,7 +1130,11 @@ mainLoop:
 					pos -= n
 				}
 			case ctrlC:
-				fmt.Println("^C")
+				if s.ctrlCSilent {
+					fmt.Println()
+				} else {
+					fmt.Println("^C")
+				}
 				if s.multiLineMode {
 					s.resetMultiLine(p, line, pos)
 				}
