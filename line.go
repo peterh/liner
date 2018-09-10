@@ -816,19 +816,19 @@ mainLoop:
 					fmt.Print(beep)
 					break
 				}
-				// Remove whitespace to the left
+				// Remove word separators to the left
 				var buf []rune // Store the deleted chars in a buffer
 				for {
-					if pos == 0 || !unicode.IsSpace(line[pos-1]) {
+					if pos == 0 || !isWordSeparator(line[pos-1]) {
 						break
 					}
 					buf = append(buf, line[pos-1])
 					line = append(line[:pos-1], line[pos:]...)
 					pos--
 				}
-				// Remove non-whitespace to the left
+				// Remove non-word separators to the left
 				for {
-					if pos == 0 || unicode.IsSpace(line[pos-1]) {
+					if pos == 0 || isWordSeparator(line[pos-1]) {
 						break
 					}
 					buf = append(buf, line[pos-1])
@@ -897,19 +897,22 @@ mainLoop:
 				}
 			case wordLeft, altB:
 				if pos > 0 {
-					var spaceHere, spaceLeft, leftKnown bool
+					var atWordSeparator, wordSeparatorLeft, leftKnown bool
 					for {
 						pos--
 						if pos == 0 {
 							break
 						}
 						if leftKnown {
-							spaceHere = spaceLeft
+							atWordSeparator = wordSeparatorLeft
 						} else {
-							spaceHere = unicode.IsSpace(line[pos])
+							atWordSeparator = isWordSeparator(line[pos])
 						}
-						spaceLeft, leftKnown = unicode.IsSpace(line[pos-1]), true
-						if !spaceHere && spaceLeft {
+
+						wordSeparatorLeft = isWordSeparator(line[pos-1])
+						leftKnown = true
+
+						if !atWordSeparator && wordSeparatorLeft {
 							break
 						}
 					}
@@ -924,19 +927,22 @@ mainLoop:
 				}
 			case wordRight, altF:
 				if pos < len(line) {
-					var spaceHere, spaceLeft, hereKnown bool
+					var atWordSeparator, wordSeparatorLeft, hereKnown bool
 					for {
 						pos++
 						if pos == len(line) {
 							break
 						}
 						if hereKnown {
-							spaceLeft = spaceHere
+							wordSeparatorLeft = atWordSeparator
 						} else {
-							spaceLeft = unicode.IsSpace(line[pos-1])
+							wordSeparatorLeft = isWordSeparator(line[pos-1])
 						}
-						spaceHere, hereKnown = unicode.IsSpace(line[pos]), true
-						if spaceHere && !spaceLeft {
+
+						atWordSeparator = isWordSeparator(line[pos])
+						hereKnown = true
+
+						if atWordSeparator && !wordSeparatorLeft {
 							break
 						}
 					}
@@ -987,18 +993,18 @@ mainLoop:
 					fmt.Print(beep)
 					break
 				}
-				// Remove whitespace to the right
+				// Remove word separators to the right
 				var buf []rune // Store the deleted chars in a buffer
 				for {
-					if pos == len(line) || !unicode.IsSpace(line[pos]) {
+					if pos == len(line) || !isWordSeparator(line[pos]) {
 						break
 					}
 					buf = append(buf, line[pos])
 					line = append(line[:pos], line[pos+1:]...)
 				}
-				// Remove non-whitespace to the right
+				// Remove non-word separators to the right
 				for {
-					if pos == len(line) || unicode.IsSpace(line[pos]) {
+					if pos == len(line) || isWordSeparator(line[pos]) {
 						break
 					}
 					buf = append(buf, line[pos])
