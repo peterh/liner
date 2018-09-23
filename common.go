@@ -17,22 +17,23 @@ import (
 )
 
 type commonState struct {
-	terminalSupported bool
-	outputRedirected  bool
-	inputRedirected   bool
-	history           []string
-	historyMutex      sync.RWMutex
-	completer         WordCompleter
-	columns           int
-	killRing          *ring.Ring
-	ctrlCAborts       bool
-	r                 *bufio.Reader
-	tabStyle          TabStyle
-	multiLineMode     bool
-	cursorRows        int
-	maxRows           int
-	shouldRestart     ShouldRestart
-	needRefresh       bool
+	terminalSupported    bool
+	outputRedirected     bool
+	inputRedirected      bool
+	history              []string
+	historyMutex         sync.RWMutex
+	completer            WordCompleter
+	columns              int
+	killRing             *ring.Ring
+	ctrlCAborts          bool
+	r                    *bufio.Reader
+	tabStyle             TabStyle
+	multiLineMode        bool
+	cursorRows           int
+	maxRows              int
+	shouldRestart        ShouldRestart
+	needRefresh          bool
+	wordSeparatorChecker WordSeparatorChecker
 }
 
 // TabStyle is used to select how tab completions are displayed.
@@ -252,4 +253,13 @@ func (s *State) promptUnsupported(p string) (string, error) {
 		return "", err
 	}
 	return string(linebuf), nil
+}
+
+// WordSeparatorChecker returns true if a rune should be consider as a word separator
+type WordSeparatorChecker func(r rune) bool
+
+// SetWordSeparatorChecker sets a function that Liner will call to determine
+// the end/beginning of a word
+func (s *State) SetWordSeparatorChecker(ch WordSeparatorChecker) {
+	s.wordSeparatorChecker = ch
 }

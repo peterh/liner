@@ -819,7 +819,7 @@ mainLoop:
 				// Remove word separators to the left
 				var buf []rune // Store the deleted chars in a buffer
 				for {
-					if pos == 0 || !isWordSeparator(line[pos-1]) {
+					if pos == 0 || !s.isWordSeparator(line[pos-1]) {
 						break
 					}
 					buf = append(buf, line[pos-1])
@@ -828,7 +828,7 @@ mainLoop:
 				}
 				// Remove non-word separators to the left
 				for {
-					if pos == 0 || isWordSeparator(line[pos-1]) {
+					if pos == 0 || s.isWordSeparator(line[pos-1]) {
 						break
 					}
 					buf = append(buf, line[pos-1])
@@ -906,10 +906,10 @@ mainLoop:
 						if leftKnown {
 							atWordSeparator = wordSeparatorLeft
 						} else {
-							atWordSeparator = isWordSeparator(line[pos])
+							atWordSeparator = s.isWordSeparator(line[pos])
 						}
 
-						wordSeparatorLeft = isWordSeparator(line[pos-1])
+						wordSeparatorLeft = s.isWordSeparator(line[pos-1])
 						leftKnown = true
 
 						if !atWordSeparator && wordSeparatorLeft {
@@ -936,10 +936,10 @@ mainLoop:
 						if hereKnown {
 							wordSeparatorLeft = atWordSeparator
 						} else {
-							wordSeparatorLeft = isWordSeparator(line[pos-1])
+							wordSeparatorLeft = s.isWordSeparator(line[pos-1])
 						}
 
-						atWordSeparator = isWordSeparator(line[pos])
+						atWordSeparator = s.isWordSeparator(line[pos])
 						hereKnown = true
 
 						if atWordSeparator && !wordSeparatorLeft {
@@ -996,7 +996,7 @@ mainLoop:
 				// Remove word separators to the right
 				var buf []rune // Store the deleted chars in a buffer
 				for {
-					if pos == len(line) || !isWordSeparator(line[pos]) {
+					if pos == len(line) || !s.isWordSeparator(line[pos]) {
 						break
 					}
 					buf = append(buf, line[pos])
@@ -1004,7 +1004,7 @@ mainLoop:
 				}
 				// Remove non-word separators to the right
 				for {
-					if pos == len(line) || isWordSeparator(line[pos]) {
+					if pos == len(line) || s.isWordSeparator(line[pos]) {
 						break
 					}
 					buf = append(buf, line[pos])
@@ -1174,4 +1174,12 @@ func (s *State) tooNarrow(prompt string) (string, error) {
 		defer func() { s.r = nil }()
 	}
 	return s.promptUnsupported(prompt)
+}
+
+func (s *State) isWordSeparator(r rune) bool {
+	if s.wordSeparatorChecker == nil {
+		s.wordSeparatorChecker = SpaceWordSeparatorChecker
+	}
+
+	return s.wordSeparatorChecker(r)
 }
