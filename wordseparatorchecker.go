@@ -2,6 +2,9 @@ package liner
 
 import "unicode"
 
+// WordSeparatorChecker returns true if a rune should be consider as a word separator
+type WordSeparatorChecker func(r rune) bool
+
 // SpaceWordSeparatorChecker (default) returns true if r is a unicode-space
 func SpaceWordSeparatorChecker(r rune) bool {
 	return unicode.IsSpace(r)

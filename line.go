@@ -812,29 +812,20 @@ mainLoop:
 				pos = 0
 				s.needRefresh = true
 			case ctrlW: // Erase word
-				if pos == 0 {
+				effect, _ := s.wordController.EraseWordBack(line, pos)
+				if effect.beep {
 					fmt.Print(beep)
+				}
+				if effect.toDelete == nil {
 					break
 				}
-				// Remove word separators to the left
-				var buf []rune // Store the deleted chars in a buffer
-				for {
-					if pos == 0 || !s.isWordSeparator(line[pos-1]) {
-						break
-					}
-					buf = append(buf, line[pos-1])
-					line = append(line[:pos-1], line[pos:]...)
-					pos--
-				}
-				// Remove non-word separators to the left
-				for {
-					if pos == 0 || s.isWordSeparator(line[pos-1]) {
-						break
-					}
-					buf = append(buf, line[pos-1])
-					line = append(line[:pos-1], line[pos:]...)
-					pos--
-				}
+
+				toDelete := effect.toDelete
+				buf := line[toDelete.from:toDelete.to]
+				line = append(line[:toDelete.from], line[toDelete.to:]...)
+
+				pos = effect.newPosition
+
 				// Invert the buffer and save the result on the killRing
 				var newBuf []rune
 				for i := len(buf) - 1; i >= 0; i-- {
@@ -896,29 +887,12 @@ mainLoop:
 					fmt.Print(beep)
 				}
 			case wordLeft, altB:
-				if pos > 0 {
-					var atWordSeparator, wordSeparatorLeft, leftKnown bool
-					for {
-						pos--
-						if pos == 0 {
-							break
-						}
-						if leftKnown {
-							atWordSeparator = wordSeparatorLeft
-						} else {
-							atWordSeparator = s.isWordSeparator(line[pos])
-						}
-
-						wordSeparatorLeft = s.isWordSeparator(line[pos-1])
-						leftKnown = true
-
-						if !atWordSeparator && wordSeparatorLeft {
-							break
-						}
-					}
-				} else {
+				effect, _ := s.wordController.WordLeft(line, pos)
+				if effect.beep {
 					fmt.Print(beep)
 				}
+
+				pos = effect.newPosition
 			case right:
 				if pos < len(line) {
 					pos += len(getPrefixGlyphs(line[pos:], 1))
@@ -926,29 +900,11 @@ mainLoop:
 					fmt.Print(beep)
 				}
 			case wordRight, altF:
-				if pos < len(line) {
-					var atWordSeparator, wordSeparatorLeft, hereKnown bool
-					for {
-						pos++
-						if pos == len(line) {
-							break
-						}
-						if hereKnown {
-							wordSeparatorLeft = atWordSeparator
-						} else {
-							wordSeparatorLeft = s.isWordSeparator(line[pos-1])
-						}
-
-						atWordSeparator = s.isWordSeparator(line[pos])
-						hereKnown = true
-
-						if atWordSeparator && !wordSeparatorLeft {
-							break
-						}
-					}
-				} else {
+				effect, _ := s.wordController.WordRight(line, pos)
+				if effect.beep {
 					fmt.Print(beep)
 				}
+				pos = effect.newPosition
 			case up:
 				historyAction = true
 				if historyStale {
@@ -989,27 +945,26 @@ mainLoop:
 			case end: // End of line
 				pos = len(line)
 			case altD: // Delete next word
-				if pos == len(line) {
+				effect, _ := s.wordController.DeleteNextWord(line, pos)
+				if effect.beep {
 					fmt.Print(beep)
+				}
+				if effect.toDelete == nil {
 					break
 				}
-				// Remove word separators to the right
-				var buf []rune // Store the deleted chars in a buffer
-				for {
-					if pos == len(line) || !s.isWordSeparator(line[pos]) {
-						break
-					}
-					buf = append(buf, line[pos])
-					line = append(line[:pos], line[pos+1:]...)
+
+				toDelete := effect.toDelete
+				buf := line[toDelete.from:toDelete.to]
+				line = append(line[:toDelete.from], line[toDelete.to:]...)
+
+				pos = effect.newPosition
+
+				// Invert the buffer and save the result on the killRing
+				var newBuf []rune
+				for i := len(buf) - 1; i >= 0; i-- {
+					newBuf = append(newBuf, buf[i])
 				}
-				// Remove non-word separators to the right
-				for {
-					if pos == len(line) || s.isWordSeparator(line[pos]) {
-						break
-					}
-					buf = append(buf, line[pos])
-					line = append(line[:pos], line[pos+1:]...)
-				}
+
 				// Save the result on the killRing
 				if killAction > 0 {
 					s.addToKillRing(buf, 2) // Add in prepend mode
@@ -1174,12 +1129,4 @@ func (s *State) tooNarrow(prompt string) (string, error) {
 		defer func() { s.r = nil }()
 	}
 	return s.promptUnsupported(prompt)
-}
-
-func (s *State) isWordSeparator(r rune) bool {
-	if s.wordSeparatorChecker == nil {
-		s.wordSeparatorChecker = SpaceWordSeparatorChecker
-	}
-
-	return s.wordSeparatorChecker(r)
 }
