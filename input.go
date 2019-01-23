@@ -264,9 +264,9 @@ func (s *State) readNext() (interface{}, error) {
 						return pageUp, nil
 					case 6:
 						return pageDown, nil
-					case 7:
+					case 1, 7:
 						return home, nil
-					case 8:
+					case 4, 8:
 						return end, nil
 					case 15:
 						return f5, nil
