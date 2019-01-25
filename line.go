@@ -40,6 +40,7 @@ const (
 	f11
 	f12
 	altB
+	altBs // Alt+Backspace
 	altD
 	altF
 	altY
@@ -812,42 +813,7 @@ mainLoop:
 				pos = 0
 				s.needRefresh = true
 			case ctrlW: // Erase word
-				if pos == 0 {
-					fmt.Print(beep)
-					break
-				}
-				// Remove whitespace to the left
-				var buf []rune // Store the deleted chars in a buffer
-				for {
-					if pos == 0 || !unicode.IsSpace(line[pos-1]) {
-						break
-					}
-					buf = append(buf, line[pos-1])
-					line = append(line[:pos-1], line[pos:]...)
-					pos--
-				}
-				// Remove non-whitespace to the left
-				for {
-					if pos == 0 || unicode.IsSpace(line[pos-1]) {
-						break
-					}
-					buf = append(buf, line[pos-1])
-					line = append(line[:pos-1], line[pos:]...)
-					pos--
-				}
-				// Invert the buffer and save the result on the killRing
-				var newBuf []rune
-				for i := len(buf) - 1; i >= 0; i-- {
-					newBuf = append(newBuf, buf[i])
-				}
-				if killAction > 0 {
-					s.addToKillRing(newBuf, 2) // Add in prepend mode
-				} else {
-					s.addToKillRing(newBuf, 0) // Add in normal mode
-				}
-				killAction = 2 // Mark that there was some killing
-
-				s.needRefresh = true
+				pos, line, killAction = s.eraseWord(pos, line, killAction)
 			case ctrlY: // Paste from Yank buffer
 				line, pos, next, err = s.yank(p, line, pos)
 				goto haveNext
@@ -1011,6 +977,8 @@ mainLoop:
 					s.addToKillRing(buf, 0) // Add in normal mode
 				}
 				killAction = 2 // Mark that there was some killing
+			case altBs: // Erase word
+				pos, line, killAction = s.eraseWord(pos, line, killAction)
 			case winch: // Window change
 				if s.multiLineMode {
 					if s.maxRows-s.cursorRows > 0 {
@@ -1168,4 +1136,44 @@ func (s *State) tooNarrow(prompt string) (string, error) {
 		defer func() { s.r = nil }()
 	}
 	return s.promptUnsupported(prompt)
+}
+
+func (s *State) eraseWord(pos int, line []rune, killAction int) (int, []rune, int) {
+	if pos == 0 {
+		fmt.Print(beep)
+		return pos, line, killAction
+	}
+	// Remove whitespace to the left
+	var buf []rune // Store the deleted chars in a buffer
+	for {
+		if pos == 0 || !unicode.IsSpace(line[pos-1]) {
+			break
+		}
+		buf = append(buf, line[pos-1])
+		line = append(line[:pos-1], line[pos:]...)
+		pos--
+	}
+	// Remove non-whitespace to the left
+	for {
+		if pos == 0 || unicode.IsSpace(line[pos-1]) {
+			break
+		}
+		buf = append(buf, line[pos-1])
+		line = append(line[:pos-1], line[pos:]...)
+		pos--
+	}
+	// Invert the buffer and save the result on the killRing
+	var newBuf []rune
+	for i := len(buf) - 1; i >= 0; i-- {
+		newBuf = append(newBuf, buf[i])
+	}
+	if killAction > 0 {
+		s.addToKillRing(newBuf, 2) // Add in prepend mode
+	} else {
+		s.addToKillRing(newBuf, 0) // Add in normal mode
+	}
+	killAction = 2 // Mark that there was some killing
+
+	s.needRefresh = true
+	return pos, line, killAction
 }
