@@ -65,6 +65,8 @@ func NewLiner() *State {
 		s.outputRedirected = !s.getColumns()
 	}
 
+	s.wordController = NewDefaultWordController()
+
 	return &s
 }
 

@@ -33,6 +33,7 @@ type commonState struct {
 	maxRows           int
 	shouldRestart     ShouldRestart
 	needRefresh       bool
+	wordController    WordController
 }
 
 // TabStyle is used to select how tab completions are displayed.
@@ -252,4 +253,9 @@ func (s *State) promptUnsupported(p string) (string, error) {
 		return "", err
 	}
 	return string(linebuf), nil
+}
+
+// SetWordController sets a behavior for word jump related functions
+func (s *State) SetWordController(wc WordController) {
+	s.wordController = wc
 }
