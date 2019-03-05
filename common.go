@@ -144,7 +144,7 @@ func (s *State) AppendHistory(item string) {
 	}
 }
 
-// ClearHistory clears the scroollback history.
+// ClearHistory clears the scrollback history.
 func (s *State) ClearHistory() {
 	s.historyMutex.Lock()
 	defer s.historyMutex.Unlock()
