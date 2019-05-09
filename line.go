@@ -1004,7 +1004,6 @@ mainLoop:
 			case chgPrompt:
 				prompt = v.data.(string)
 				p = []rune(prompt)
-				// fmt.Printf(" ** chg p [%v] [%v] **\n", prompt, p)
 				s.cursorPos(0)
 				s.eraseLine()
 				s.refresh(p, line, pos)
