@@ -158,7 +158,7 @@ func (s *State) readNext() (interface{}, error) {
 	case <-s.winch:
 		s.getColumns()
 		return winch, nil
-	case actReq := <-s.ctrlIn:
+	case actReq := <-s.actIn:
 		return actReq, nil
 	}
 	if r != esc {
