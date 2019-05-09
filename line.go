@@ -48,10 +48,6 @@ const (
 	wordLeft
 	wordRight
 	winch
-
-	hidePrompt
-	showPrompt
-
 	unknown
 )
 
@@ -996,15 +992,24 @@ mainLoop:
 					s.maxRows = 1
 					s.cursorRows = 1
 				}
+			}
+			s.needRefresh = true
+		case *asyncAction:
+			switch v.act {
 			case hidePrompt:
 				s.cursorPos(0)
 				s.eraseLine()
-				s.actOut <- hidePrompt
 			case showPrompt:
 				s.refresh(p, line, pos)
-				s.actOut <- showPrompt
+			case chgPrompt:
+				prompt = v.data.(string)
+				p = []rune(prompt)
+				// fmt.Printf(" ** chg p [%v] [%v] **\n", prompt, p)
+				s.cursorPos(0)
+				s.eraseLine()
+				s.refresh(p, line, pos)
 			}
-			s.needRefresh = true
+			s.actOut <- v
 		}
 		if s.needRefresh && !s.inputWaiting() {
 			err := s.refresh(p, line, pos)

@@ -13,7 +13,25 @@ func (s *State) Done() chan struct{} {
 	return s.done
 }
 
-func (s *State) performAction(actReq action) {
+type actCode int
+
+const (
+	noAct actCode = iota
+
+	hidePrompt
+	showPrompt
+	chgPrompt
+)
+
+type asyncAction struct {
+	act  actCode
+	data interface{}
+}
+
+func (s *State) performAction(act actCode, data interface{}) {
+	actReq := &asyncAction{
+		act, data,
+	}
 	select {
 	case s.actIn <- actReq:
 		// the requested action went into prompting function
@@ -32,11 +50,17 @@ func (s *State) performAction(actReq action) {
 // HidePrompt returns after the prompt and partial input is cleared if under line editing,
 // or returns immediately if no editing undergoing.
 func (s *State) HidePrompt() {
-	s.performAction(hidePrompt)
+	s.performAction(hidePrompt, nil)
 }
 
 // ShowPrompt returns after the prompt and partial input is refreshed if under line editing,
 // or returns immediately if no editing undergoing.
 func (s *State) ShowPrompt() {
-	s.performAction(showPrompt)
+	s.performAction(showPrompt, nil)
+}
+
+// ChangePrompt change the prompt and restore partial input if under line editing,
+// or returns immediately if no editing undergoing.
+func (s *State) ChangePrompt(prompt string) {
+	s.performAction(chgPrompt, prompt)
 }

@@ -29,7 +29,7 @@ type State struct {
 	pending     []rune
 	useCHA      bool
 
-	actIn, actOut chan action
+	actIn, actOut chan *asyncAction
 
 	done      chan struct{}
 	doneMutex sync.Mutex
@@ -38,7 +38,10 @@ type State struct {
 // NewLiner initializes a new *State, and sets the terminal into raw mode. To
 // restore the terminal to its previous state, call State.Close().
 func NewLiner() *State {
-	var s State
+	s := State{
+		actIn:  make(chan *asyncAction),
+		actOut: make(chan *asyncAction),
+	}
 	s.r = bufio.NewReader(os.Stdin)
 
 	s.terminalSupported = TerminalSupported()
