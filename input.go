@@ -9,6 +9,7 @@ import (
 	"os/signal"
 	"strconv"
 	"strings"
+	"sync"
 	"syscall"
 	"time"
 )
@@ -27,6 +28,11 @@ type State struct {
 	winch       chan os.Signal
 	pending     []rune
 	useCHA      bool
+
+	actIn, actOut chan action
+
+	done      chan struct{}
+	doneMutex sync.Mutex
 }
 
 // NewLiner initializes a new *State, and sets the terminal into raw mode. To
@@ -87,8 +93,11 @@ func (s *State) inputWaiting() bool {
 }
 
 func (s *State) restartPrompt() {
+	done := make(chan struct{})
 	next := make(chan nexter, 200)
 	go func() {
+		defer close(done)
+
 		for {
 			var n nexter
 			n.r, _, n.err = s.r.ReadRune()
@@ -101,6 +110,9 @@ func (s *State) restartPrompt() {
 		}
 	}()
 	s.next = next
+	s.doneMutex.Lock()
+	s.done = done
+	s.doneMutex.Unlock()
 }
 
 func (s *State) stopPrompt() {
@@ -146,6 +158,8 @@ func (s *State) readNext() (interface{}, error) {
 	case <-s.winch:
 		s.getColumns()
 		return winch, nil
+	case actReq := <-s.ctrlIn:
+		return actReq, nil
 	}
 	if r != esc {
 		return r, nil

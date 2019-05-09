@@ -48,6 +48,10 @@ const (
 	wordLeft
 	wordRight
 	winch
+
+	hidePrompt
+	showPrompt
+
 	unknown
 )
 
@@ -992,6 +996,13 @@ mainLoop:
 					s.maxRows = 1
 					s.cursorRows = 1
 				}
+			case hidePrompt:
+				s.cursorPos(0)
+				s.eraseLine()
+				s.actOut <- hidePrompt
+			case showPrompt:
+				s.refresh(p, line, pos)
+				s.actOut <- showPrompt
 			}
 			s.needRefresh = true
 		}
