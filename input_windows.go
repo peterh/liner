@@ -3,6 +3,7 @@ package liner
 import (
 	"bufio"
 	"os"
+	"sync"
 	"syscall"
 	"unicode/utf16"
 	"unsafe"
@@ -41,6 +42,11 @@ type State struct {
 	defaultMode inputMode
 	key         interface{}
 	repeat      uint16
+
+	actIn, actOut chan *asyncAction
+
+	done      chan struct{}
+	doneMutex sync.Mutex
 }
 
 const (
