@@ -6,11 +6,17 @@ import (
 	"bufio"
 	"errors"
 	"os"
+	"sync"
 )
 
 // State represents an open terminal
 type State struct {
 	commonState
+
+	actIn, actOut chan *asyncAction
+
+	done      chan struct{}
+	doneMutex sync.Mutex
 }
 
 // Prompt displays p, and then waits for user input. Prompt does not support
