@@ -3,7 +3,6 @@
 package liner
 
 import (
-	"bufio"
 	"errors"
 	"os"
 	"os/signal"
@@ -33,7 +32,8 @@ type State struct {
 // restore the terminal to its previous state, call State.Close().
 func NewLiner() *State {
 	var s State
-	s.r = bufio.NewReader(os.Stdin)
+	s.SetWriter(os.Stdout)
+	s.SetReader(os.Stdin)
 
 	s.terminalSupported = TerminalSupported()
 	if m, err := TerminalMode(); err == nil {
