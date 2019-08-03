@@ -3,7 +3,6 @@
 package liner
 
 import (
-	"bufio"
 	"errors"
 	"os"
 )
@@ -30,7 +29,8 @@ func (s *State) PasswordPrompt(p string) (string, error) {
 // editing. Patches welcome.
 func NewLiner() *State {
 	var s State
-	s.r = bufio.NewReader(os.Stdin)
+	s.SetWriter(os.Stdout)
+	s.SetReader(os.Stdin)
 	return &s
 }
 

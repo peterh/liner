@@ -2,7 +2,7 @@ package liner
 
 import (
 	"bytes"
-	"fmt"
+	"os"
 	"strings"
 	"testing"
 )
@@ -129,6 +129,7 @@ func TestColumns(t *testing.T) {
 // history buffer without using a file.
 func ExampleState_WriteHistory() {
 	var s State
+	s.SetWriter(os.Stdout)
 	s.AppendHistory("foo")
 	s.AppendHistory("bar")
 
@@ -137,7 +138,7 @@ func ExampleState_WriteHistory() {
 	if err == nil {
 		history := strings.Split(strings.TrimSpace(buf.String()), "\n")
 		for i, line := range history {
-			fmt.Println("History entry", i, ":", line)
+			s.println("History entry", i, ":", line)
 		}
 	}
 	// Output:

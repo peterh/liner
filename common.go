@@ -26,6 +26,7 @@ type commonState struct {
 	columns           int
 	killRing          *ring.Ring
 	ctrlCAborts       bool
+	w                 io.Writer
 	r                 *bufio.Reader
 	tabStyle          TabStyle
 	multiLineMode     bool
@@ -252,11 +253,31 @@ func (s *State) SetBeep(beep bool) {
 
 func (s *State) promptUnsupported(p string) (string, error) {
 	if !s.inputRedirected || !s.terminalSupported {
-		fmt.Print(p)
+		s.print(p)
 	}
 	linebuf, _, err := s.r.ReadLine()
 	if err != nil {
 		return "", err
 	}
 	return string(linebuf), nil
+}
+
+func (s *State) print(str string) (int, error) {
+	return fmt.Fprint(s.w, str)
+}
+
+func (s *State) println(args ...interface{}) (int, error) {
+	return fmt.Fprintln(s.w, args...)
+}
+
+func (s *State) printf(str string, args ...interface{}) (int, error) {
+	return fmt.Fprintf(s.w, str, args...)
+}
+
+func (s *State) SetWriter(w io.Writer) {
+	s.w = w
+}
+
+func (s *State) SetReader(r io.Reader) {
+	s.r = bufio.NewReader(r)
 }

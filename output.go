@@ -3,7 +3,6 @@
 package liner
 
 import (
-	"fmt"
 	"os"
 	"strings"
 	"syscall"
@@ -13,34 +12,34 @@ import (
 func (s *State) cursorPos(x int) {
 	if s.useCHA {
 		// 'G' is "Cursor Character Absolute (CHA)"
-		fmt.Printf("\x1b[%dG", x+1)
+		s.printf("\x1b[%dG", x+1)
 	} else {
 		// 'C' is "Cursor Forward (CUF)"
-		fmt.Print("\r")
+		s.print("\r")
 		if x > 0 {
-			fmt.Printf("\x1b[%dC", x)
+			s.printf("\x1b[%dC", x)
 		}
 	}
 }
 
 func (s *State) eraseLine() {
-	fmt.Print("\x1b[0K")
+	s.print("\x1b[0K")
 }
 
 func (s *State) eraseScreen() {
-	fmt.Print("\x1b[H\x1b[2J")
+	s.print("\x1b[H\x1b[2J")
 }
 
 func (s *State) moveUp(lines int) {
-	fmt.Printf("\x1b[%dA", lines)
+	s.printf("\x1b[%dA", lines)
 }
 
 func (s *State) moveDown(lines int) {
-	fmt.Printf("\x1b[%dB", lines)
+	s.printf("\x1b[%dB", lines)
 }
 
 func (s *State) emitNewLine() {
-	fmt.Print("\n")
+	s.print("\n")
 }
 
 type winSize struct {
