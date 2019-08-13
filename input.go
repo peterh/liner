@@ -33,6 +33,7 @@ type State struct {
 // restore the terminal to its previous state, call State.Close().
 func NewLiner() *State {
 	var s State
+	s.historyLimit = HistoryLimit
 	s.r = bufio.NewReader(os.Stdin)
 
 	s.terminalSupported = TerminalSupported()

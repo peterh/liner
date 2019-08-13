@@ -21,6 +21,7 @@ type commonState struct {
 	outputRedirected  bool
 	inputRedirected   bool
 	history           []string
+	historyLimit      int
 	historyMutex      sync.RWMutex
 	completer         WordCompleter
 	columns           int
@@ -99,11 +100,20 @@ func (s *State) ReadHistory(r io.Reader) (num int, err error) {
 		}
 		num++
 		s.history = append(s.history, string(line))
-		if len(s.history) > HistoryLimit {
+		if len(s.history) > s.historyLimit {
 			s.history = s.history[1:]
 		}
 	}
 	return num, nil
+}
+
+// SetHistoryLimit and shrink buffer if too large.
+func (s *State) SetHistoryLimit(n int) {
+	s.historyLimit = n
+	if len(s.history) > n {
+		start := len(s.history) - n
+		s.history = s.history[start : n-1]
+	}
 }
 
 // WriteHistory writes scrollback history to w. Returns the number of lines
@@ -139,7 +149,7 @@ func (s *State) AppendHistory(item string) {
 		}
 	}
 	s.history = append(s.history, item)
-	if len(s.history) > HistoryLimit {
+	if len(s.history) > s.historyLimit {
 		s.history = s.history[1:]
 	}
 }
