@@ -449,7 +449,7 @@ func (s *State) reverseISearch(origLine []rune, origPos int) ([]rune, int, inter
 					foundLine = history[historyPos]
 					foundPos = positions[historyPos]
 				} else {
-					fmt.Print(beep)
+					s.doBeep()
 				}
 			case ctrlS: // Search forward
 				if historyPos < len(history)-1 && historyPos >= 0 {
@@ -457,11 +457,11 @@ func (s *State) reverseISearch(origLine []rune, origPos int) ([]rune, int, inter
 					foundLine = history[historyPos]
 					foundPos = positions[historyPos]
 				} else {
-					fmt.Print(beep)
+					s.doBeep()
 				}
 			case ctrlH, bs: // Backspace
 				if pos <= 0 {
-					fmt.Print(beep)
+					s.doBeep()
 				} else {
 					n := len(getSuffixGlyphs(line[:pos], 1))
 					line = append(line[:pos-n], line[pos:]...)
@@ -684,14 +684,14 @@ mainLoop:
 					pos -= len(getSuffixGlyphs(line[:pos], 1))
 					s.needRefresh = true
 				} else {
-					fmt.Print(beep)
+					s.doBeep()
 				}
 			case ctrlF: // right
 				if pos < len(line) {
 					pos += len(getPrefixGlyphs(line[pos:], 1))
 					s.needRefresh = true
 				} else {
-					fmt.Print(beep)
+					s.doBeep()
 				}
 			case ctrlD: // del
 				if pos == 0 && len(line) == 0 {
@@ -704,7 +704,7 @@ mainLoop:
 				s.restartPrompt()
 
 				if pos >= len(line) {
-					fmt.Print(beep)
+					s.doBeep()
 				} else {
 					n := len(getPrefixGlyphs(line[pos:], 1))
 					line = append(line[:pos], line[pos+n:]...)
@@ -712,7 +712,7 @@ mainLoop:
 				}
 			case ctrlK: // delete remainder of line
 				if pos >= len(line) {
-					fmt.Print(beep)
+					s.doBeep()
 				} else {
 					if killAction > 0 {
 						s.addToKillRing(line[pos:], 1) // Add in apend mode
@@ -740,7 +740,7 @@ mainLoop:
 					pos = len(line)
 					s.needRefresh = true
 				} else {
-					fmt.Print(beep)
+					s.doBeep()
 				}
 			case ctrlN: // down
 				historyAction = true
@@ -759,11 +759,11 @@ mainLoop:
 					pos = len(line)
 					s.needRefresh = true
 				} else {
-					fmt.Print(beep)
+					s.doBeep()
 				}
 			case ctrlT: // transpose prev glyph with glyph under cursor
 				if len(line) < 2 || pos < 1 {
-					fmt.Print(beep)
+					s.doBeep()
 				} else {
 					if pos == len(line) {
 						pos -= len(getSuffixGlyphs(line, 1))
@@ -794,7 +794,7 @@ mainLoop:
 				s.restartPrompt()
 			case ctrlH, bs: // Backspace
 				if pos <= 0 {
-					fmt.Print(beep)
+					s.doBeep()
 				} else {
 					n := len(getSuffixGlyphs(line[:pos], 1))
 					line = append(line[:pos-n], line[pos:]...)
@@ -832,7 +832,7 @@ mainLoop:
 				fallthrough
 			// Catch unhandled control codes (anything <= 31)
 			case 0, 28, 29, 30, 31:
-				fmt.Print(beep)
+				s.doBeep()
 			default:
 				if pos == len(line) && !s.multiLineMode &&
 					len(p)+len(line) < s.columns*4 && // Avoid countGlyphs on large lines
@@ -850,7 +850,7 @@ mainLoop:
 			switch v {
 			case del:
 				if pos >= len(line) {
-					fmt.Print(beep)
+					s.doBeep()
 				} else {
 					n := len(getPrefixGlyphs(line[pos:], 1))
 					line = append(line[:pos], line[pos+n:]...)
@@ -859,7 +859,7 @@ mainLoop:
 				if pos > 0 {
 					pos -= len(getSuffixGlyphs(line[:pos], 1))
 				} else {
-					fmt.Print(beep)
+					s.doBeep()
 				}
 			case wordLeft, altB:
 				if pos > 0 {
@@ -880,13 +880,13 @@ mainLoop:
 						}
 					}
 				} else {
-					fmt.Print(beep)
+					s.doBeep()
 				}
 			case right:
 				if pos < len(line) {
 					pos += len(getPrefixGlyphs(line[pos:], 1))
 				} else {
-					fmt.Print(beep)
+					s.doBeep()
 				}
 			case wordRight, altF:
 				if pos < len(line) {
@@ -907,7 +907,7 @@ mainLoop:
 						}
 					}
 				} else {
-					fmt.Print(beep)
+					s.doBeep()
 				}
 			case up:
 				historyAction = true
@@ -924,7 +924,7 @@ mainLoop:
 					line = []rune(historyPrefix[historyPos])
 					pos = len(line)
 				} else {
-					fmt.Print(beep)
+					s.doBeep()
 				}
 			case down:
 				historyAction = true
@@ -942,7 +942,7 @@ mainLoop:
 					}
 					pos = len(line)
 				} else {
-					fmt.Print(beep)
+					s.doBeep()
 				}
 			case home: // Start of line
 				pos = 0
@@ -950,7 +950,7 @@ mainLoop:
 				pos = len(line)
 			case altD: // Delete next word
 				if pos == len(line) {
-					fmt.Print(beep)
+					s.doBeep()
 					break
 				}
 				// Remove whitespace to the right
@@ -1087,7 +1087,7 @@ mainLoop:
 				}
 			case ctrlH, bs: // Backspace
 				if pos <= 0 {
-					fmt.Print(beep)
+					s.doBeep()
 				} else {
 					n := len(getSuffixGlyphs(line[:pos], 1))
 					line = append(line[:pos-n], line[pos:]...)
@@ -1111,7 +1111,7 @@ mainLoop:
 				fallthrough
 			// Catch unhandled control codes (anything <= 31)
 			case 0, 28, 29, 30, 31:
-				fmt.Print(beep)
+				s.doBeep()
 			default:
 				line = append(line[:pos], append([]rune{v}, line[pos:]...)...)
 				pos++
@@ -1140,7 +1140,7 @@ func (s *State) tooNarrow(prompt string) (string, error) {
 
 func (s *State) eraseWord(pos int, line []rune, killAction int) (int, []rune, int) {
 	if pos == 0 {
-		fmt.Print(beep)
+		s.doBeep()
 		return pos, line, killAction
 	}
 	// Remove whitespace to the left
@@ -1176,4 +1176,10 @@ func (s *State) eraseWord(pos int, line []rune, killAction int) (int, []rune, in
 
 	s.needRefresh = true
 	return pos, line, killAction
+}
+
+func (s *State) doBeep() {
+	if !s.noBeep {
+		fmt.Print(beep)
+	}
 }
