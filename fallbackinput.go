@@ -4,7 +4,6 @@ package liner
 
 import (
 	"errors"
-	"os"
 )
 
 // State represents an open terminal
@@ -23,15 +22,7 @@ func (s *State) PasswordPrompt(p string) (string, error) {
 	return "", errors.New("liner: function not supported in this terminal")
 }
 
-// NewLiner initializes a new *State
-//
-// Note that this operating system uses a fallback mode without line
-// editing. Patches welcome.
-func NewLiner() *State {
-	var s State
-	s.setWriter(os.Stdout)
-	s.setReader(os.Stdin)
-	return &s
+func (s *State) init() {
 }
 
 // Close returns the terminal to its previous mode
