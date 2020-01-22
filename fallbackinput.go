@@ -29,8 +29,8 @@ func (s *State) PasswordPrompt(p string) (string, error) {
 // editing. Patches welcome.
 func NewLiner() *State {
 	var s State
-	s.SetWriter(os.Stdout)
-	s.SetReader(os.Stdin)
+	s.setWriter(os.Stdout)
+	s.setReader(os.Stdin)
 	return &s
 }
 
@@ -47,12 +47,12 @@ func TerminalSupported() bool {
 
 type noopMode struct{}
 
-func (n noopMode) ApplyMode() error {
+func (n noopMode) ApplyMode(uintptr) error {
 	return nil
 }
 
 // TerminalMode returns a noop InputModeSetter on this platform.
-func TerminalMode() (ModeApplier, error) {
+func (s *State) TerminalMode() (ModeApplier, error) {
 	return noopMode{}, nil
 }
 

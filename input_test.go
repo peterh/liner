@@ -39,8 +39,8 @@ func (s *State) expectAction(t *testing.T, a action) {
 func TestTypes(t *testing.T) {
 	input := []byte{'A', 27, 'B', 27, 91, 68, 27, '[', '1', ';', '5', 'D', 'e'}
 	var s State
-	s.SetWriter(os.Stdout)
-	s.SetReader(bytes.NewBuffer(input))
+	s.setWriter(os.Stdout)
+	s.setReader(bytes.NewBuffer(input))
 
 	next := make(chan nexter)
 	go func() {

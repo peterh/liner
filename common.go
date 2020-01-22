@@ -11,6 +11,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"os"
 	"strings"
 	"sync"
 	"unicode/utf8"
@@ -28,6 +29,7 @@ type commonState struct {
 	ctrlCAborts       bool
 	w                 io.Writer
 	r                 *bufio.Reader
+	outfd, infd       uintptr
 	tabStyle          TabStyle
 	multiLineMode     bool
 	cursorRows        int
@@ -219,7 +221,7 @@ func (s *State) SetTabCompletionStyle(tabStyle TabStyle) {
 // ModeApplier is the interface that wraps a representation of the terminal
 // mode. ApplyMode sets the terminal to this mode.
 type ModeApplier interface {
-	ApplyMode() error
+	ApplyMode(uintptr) error
 }
 
 // SetCtrlCAborts sets whether Prompt on a supported terminal will return an
@@ -274,10 +276,20 @@ func (s *State) printf(str string, args ...interface{}) (int, error) {
 	return fmt.Fprintf(s.w, str, args...)
 }
 
-func (s *State) SetWriter(w io.Writer) {
+func (s *State) setWriter(w io.Writer) {
 	s.w = w
+	if f, ok := w.(interface{ Fd() uintptr }); ok {
+		s.outfd = f.Fd()
+	} else {
+		s.outfd = os.Stdout.Fd()
+	}
 }
 
-func (s *State) SetReader(r io.Reader) {
+func (s *State) setReader(r io.Reader) {
 	s.r = bufio.NewReader(r)
+	if f, ok := r.(interface{ Fd() uintptr }); ok {
+		s.infd = f.Fd()
+	} else {
+		s.infd = os.Stdin.Fd()
+	}
 }

@@ -129,7 +129,7 @@ func TestColumns(t *testing.T) {
 // history buffer without using a file.
 func ExampleState_WriteHistory() {
 	var s State
-	s.SetWriter(os.Stdout)
+	s.setWriter(os.Stdout)
 	s.AppendHistory("foo")
 	s.AppendHistory("bar")
 

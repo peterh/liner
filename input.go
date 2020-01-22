@@ -4,12 +4,15 @@ package liner
 
 import (
 	"errors"
+	"io"
 	"os"
 	"os/signal"
 	"strconv"
 	"strings"
 	"syscall"
 	"time"
+
+	"github.com/mattn/go-tty"
 )
 
 type nexter struct {
@@ -26,22 +29,30 @@ type State struct {
 	winch       chan os.Signal
 	pending     []rune
 	useCHA      bool
+	tty         io.Closer
 }
 
 // NewLiner initializes a new *State, and sets the terminal into raw mode. To
 // restore the terminal to its previous state, call State.Close().
 func NewLiner() *State {
 	var s State
-	s.SetWriter(os.Stdout)
-	s.SetReader(os.Stdin)
+	tty, err := tty.Open()
+	if err == nil {
+		s.setWriter(tty.Output())
+		s.setReader(tty.Input())
+		s.tty = tty
+	} else {
+		s.setWriter(os.Stdout)
+		s.setReader(os.Stdin)
+	}
 
 	s.terminalSupported = TerminalSupported()
-	if m, err := TerminalMode(); err == nil {
+	if m, err := s.TerminalMode(); err == nil {
 		s.origMode = *m.(*termios)
 	} else {
 		s.inputRedirected = true
 	}
-	if _, err := getMode(syscall.Stdout); err != 0 {
+	if _, err := getMode(s.outfd); err != 0 {
 		s.outputRedirected = true
 	}
 	if s.inputRedirected && s.outputRedirected {
@@ -52,7 +63,7 @@ func NewLiner() *State {
 		mode.Iflag &^= icrnl | inpck | istrip | ixon
 		mode.Cflag |= cs8
 		mode.Lflag &^= syscall.ECHO | icanon | iexten
-		mode.ApplyMode()
+		mode.ApplyMode(s.infd)
 
 		winch := make(chan os.Signal, 1)
 		signal.Notify(winch, syscall.SIGWINCH)
@@ -72,11 +83,11 @@ var errTimedOut = errors.New("timeout")
 
 func (s *State) startPrompt() {
 	if s.terminalSupported {
-		if m, err := TerminalMode(); err == nil {
+		if m, err := s.TerminalMode(); err == nil {
 			s.defaultMode = *m.(*termios)
 			mode := s.defaultMode
 			mode.Lflag &^= isig
-			mode.ApplyMode()
+			mode.ApplyMode(s.infd)
 		}
 	}
 	s.restartPrompt()
@@ -105,7 +116,7 @@ func (s *State) restartPrompt() {
 
 func (s *State) stopPrompt() {
 	if s.terminalSupported {
-		s.defaultMode.ApplyMode()
+		s.defaultMode.ApplyMode(s.infd)
 	}
 }
 
@@ -354,7 +365,10 @@ func (s *State) readNext() (interface{}, error) {
 func (s *State) Close() error {
 	signal.Stop(s.winch)
 	if !s.inputRedirected {
-		s.origMode.ApplyMode()
+		s.origMode.ApplyMode(s.infd)
+	}
+	if s.tty != nil {
+		s.tty.Close()
 	}
 	return nil
 }

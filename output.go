@@ -49,7 +49,7 @@ type winSize struct {
 
 func (s *State) getColumns() bool {
 	var ws winSize
-	ok, _, _ := syscall.Syscall(syscall.SYS_IOCTL, uintptr(syscall.Stdout),
+	ok, _, _ := syscall.Syscall(syscall.SYS_IOCTL, s.outfd,
 		syscall.TIOCGWINSZ, uintptr(unsafe.Pointer(&ws)))
 	if int(ok) < 0 {
 		return false

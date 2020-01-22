@@ -1124,14 +1124,14 @@ func (s *State) tooNarrow(prompt string) (string, error) {
 	// Docker and OpenWRT and etc sometimes return 0 column width
 	// Reset mode temporarily. Restore baked mode in case the terminal
 	// is wide enough for the next Prompt attempt.
-	m, merr := TerminalMode()
-	s.origMode.ApplyMode()
+	m, merr := s.TerminalMode()
+	s.origMode.ApplyMode(s.infd)
 	if merr == nil {
-		defer m.ApplyMode()
+		defer m.ApplyMode(s.infd)
 	}
 	if s.r == nil {
 		// Windows does not always set s.r
-		s.SetReader(os.Stdin)
+		s.setReader(os.Stdin)
 		defer func() { s.r = nil }()
 	}
 	return s.promptUnsupported(prompt)

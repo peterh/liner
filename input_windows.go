@@ -56,7 +56,7 @@ const (
 // restore the terminal to its previous state, call State.Close().
 func NewLiner() *State {
 	var s State
-	s.SetWriter(os.Stdout)
+	s.setWriter(os.Stdout)
 	hIn, _, _ := procGetStdHandle.Call(uintptr(std_input_handle))
 	s.handle = syscall.Handle(hIn)
 	hOut, _, _ := procGetStdHandle.Call(uintptr(std_output_handle))
@@ -74,7 +74,7 @@ func NewLiner() *State {
 		mode.ApplyMode()
 	} else {
 		s.inputRedirected = true
-		s.SetReader(os.Stdin)
+		s.setReader(os.Stdin)
 	}
 
 	s.getColumns()
