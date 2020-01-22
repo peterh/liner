@@ -7,7 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"os"
 	"strings"
 	"unicode"
 	"unicode/utf8"
@@ -1128,11 +1127,6 @@ func (s *State) tooNarrow(prompt string) (string, error) {
 	s.origMode.ApplyMode(s.infd)
 	if merr == nil {
 		defer m.ApplyMode(s.infd)
-	}
-	if s.r == nil {
-		// Windows does not always set s.r
-		s.setReader(os.Stdin)
-		defer func() { s.r = nil }()
 	}
 	return s.promptUnsupported(prompt)
 }

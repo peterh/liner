@@ -2,7 +2,6 @@ package liner
 
 import (
 	"io"
-	"os"
 	"syscall"
 	"unicode/utf16"
 	"unsafe"
@@ -55,7 +54,6 @@ func (s *State) init() {
 		mode.ApplyMode(s.infd)
 	} else {
 		s.inputRedirected = true
-		s.setReader(os.Stdin)
 	}
 
 	s.getColumns()
