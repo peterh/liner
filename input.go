@@ -11,8 +11,6 @@ import (
 	"strings"
 	"syscall"
 	"time"
-
-	"github.com/mattn/go-tty"
 )
 
 type nexter struct {
@@ -30,33 +28,6 @@ type State struct {
 	pending     []rune
 	useCHA      bool
 	tty         io.Closer
-}
-
-// NewLiner initializes a new *State, and sets the terminal into raw mode. To
-// restore the terminal to its previous state, call State.Close().
-func NewLiner() *State {
-	var s State
-	s.setWriter(os.Stdout)
-	s.setReader(os.Stdin)
-	s.init()
-	return &s
-}
-
-// NewLinerTTY initializes a new *State with connecting to tty.
-// This is useful when prompting regardless of the redirections.
-func NewLinerTTY() *State {
-	var s State
-	tty, err := tty.Open()
-	if err == nil {
-		s.setWriter(tty.Output())
-		s.setReader(tty.Input())
-		s.tty = tty
-	} else {
-		s.setWriter(os.Stdout)
-		s.setReader(os.Stdin)
-	}
-	s.init()
-	return &s
 }
 
 func (s *State) init() {

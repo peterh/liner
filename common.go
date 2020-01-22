@@ -15,6 +15,8 @@ import (
 	"strings"
 	"sync"
 	"unicode/utf8"
+
+	"github.com/mattn/go-tty"
 )
 
 type commonState struct {
@@ -78,6 +80,33 @@ const KillRingMax = 60
 
 // HistoryLimit is the maximum number of entries saved in the scrollback history.
 const HistoryLimit = 1000
+
+// NewLiner initializes a new *State, and sets the terminal into raw mode. To
+// restore the terminal to its previous state, call State.Close().
+func NewLiner() *State {
+	var s State
+	s.setWriter(os.Stdout)
+	s.setReader(os.Stdin)
+	s.init()
+	return &s
+}
+
+// NewLinerTTY initializes a new *State with connecting to tty.
+// This is useful when prompting regardless of the redirections.
+func NewLinerTTY() *State {
+	var s State
+	tty, err := tty.Open()
+	if err == nil {
+		s.setWriter(tty.Output())
+		s.setReader(tty.Input())
+		s.tty = tty
+	} else {
+		s.setWriter(os.Stdout)
+		s.setReader(os.Stdin)
+	}
+	s.init()
+	return &s
+}
 
 // ReadHistory reads scrollback history from r. Returns the number of lines
 // read, and any read error (except io.EOF).

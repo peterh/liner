@@ -1,6 +1,7 @@
 package liner
 
 import (
+	"io"
 	"os"
 	"syscall"
 	"unicode/utf16"
@@ -10,7 +11,6 @@ import (
 var (
 	kernel32 = syscall.NewLazyDLL("kernel32.dll")
 
-	procGetStdHandle                  = kernel32.NewProc("GetStdHandle")
 	procReadConsoleInput              = kernel32.NewProc("ReadConsoleInputW")
 	procGetNumberOfConsoleInputEvents = kernel32.NewProc("GetNumberOfConsoleInputEvents")
 	procGetConsoleMode                = kernel32.NewProc("GetConsoleMode")
@@ -20,26 +20,16 @@ var (
 	procFillConsoleOutputCharacter    = kernel32.NewProc("FillConsoleOutputCharacterW")
 )
 
-// These names are from the Win32 api, so they use underscores (contrary to
-// what golint suggests)
-const (
-	std_input_handle     = uint32(-10 & 0xFFFFFFFF)
-	std_output_handle    = uint32(-11 & 0xFFFFFFFF)
-	std_error_handle     = uint32(-12 & 0xFFFFFFFF)
-	invalid_handle_value = ^uintptr(0)
-)
-
 type inputMode uint32
 
 // State represents an open terminal
 type State struct {
 	commonState
-	handle      syscall.Handle
-	hOut        syscall.Handle
 	origMode    inputMode
 	defaultMode inputMode
 	key         interface{}
 	repeat      uint16
+	tty         io.Closer
 }
 
 const (
@@ -52,18 +42,9 @@ const (
 	enableWindowInput    = 0x8
 )
 
-// NewLiner initializes a new *State, and sets the terminal into raw mode. To
-// restore the terminal to its previous state, call State.Close().
-func NewLiner() *State {
-	var s State
-	s.setWriter(os.Stdout)
-	hIn, _, _ := procGetStdHandle.Call(uintptr(std_input_handle))
-	s.handle = syscall.Handle(hIn)
-	hOut, _, _ := procGetStdHandle.Call(uintptr(std_output_handle))
-	s.hOut = syscall.Handle(hOut)
-
+func (s *State) init() {
 	s.terminalSupported = true
-	if m, err := TerminalMode(); err == nil {
+	if m, err := s.TerminalMode(); err == nil {
 		s.origMode = m.(inputMode)
 		mode := s.origMode
 		mode &^= enableEchoInput
@@ -71,7 +52,7 @@ func NewLiner() *State {
 		mode &^= enableLineInput
 		mode &^= enableMouseInput
 		mode |= enableWindowInput
-		mode.ApplyMode()
+		mode.ApplyMode(s.infd)
 	} else {
 		s.inputRedirected = true
 		s.setReader(os.Stdin)
@@ -79,8 +60,6 @@ func NewLiner() *State {
 
 	s.getColumns()
 	s.outputRedirected = s.columns <= 0
-
-	return &s
 }
 
 // These names are from the Win32 api, so they use underscores (contrary to
@@ -155,7 +134,7 @@ const (
 // inputWaiting only returns true if the next call to readNext will return immediately.
 func (s *State) inputWaiting() bool {
 	var num uint32
-	ok, _, _ := procGetNumberOfConsoleInputEvents.Call(uintptr(s.handle), uintptr(unsafe.Pointer(&num)))
+	ok, _, _ := procGetNumberOfConsoleInputEvents.Call(s.infd, uintptr(unsafe.Pointer(&num)))
 	if ok == 0 {
 		// call failed, so we cannot guarantee a non-blocking readNext
 		return false
@@ -181,7 +160,7 @@ func (s *State) readNext() (interface{}, error) {
 	var surrogate uint16
 
 	for {
-		ok, _, err := procReadConsoleInput.Call(uintptr(s.handle), pbuf, 1, prv)
+		ok, _, err := procReadConsoleInput.Call(s.infd, pbuf, 1, prv)
 
 		if ok == 0 {
 			return nil, err
@@ -310,16 +289,19 @@ func (s *State) readNext() (interface{}, error) {
 
 // Close returns the terminal to its previous mode
 func (s *State) Close() error {
-	s.origMode.ApplyMode()
+	s.origMode.ApplyMode(s.infd)
+	if s.tty != nil {
+		s.tty.Close()
+	}
 	return nil
 }
 
 func (s *State) startPrompt() {
-	if m, err := TerminalMode(); err == nil {
+	if m, err := s.TerminalMode(); err == nil {
 		s.defaultMode = m.(inputMode)
 		mode := s.defaultMode
 		mode &^= enableProcessedInput
-		mode.ApplyMode()
+		mode.ApplyMode(s.infd)
 	}
 }
 
@@ -327,7 +309,7 @@ func (s *State) restartPrompt() {
 }
 
 func (s *State) stopPrompt() {
-	s.defaultMode.ApplyMode()
+	s.defaultMode.ApplyMode(s.infd)
 }
 
 // TerminalSupported returns true because line editing is always
@@ -336,12 +318,8 @@ func TerminalSupported() bool {
 	return true
 }
 
-func (mode inputMode) ApplyMode() error {
-	hIn, _, err := procGetStdHandle.Call(uintptr(std_input_handle))
-	if hIn == invalid_handle_value || hIn == 0 {
-		return err
-	}
-	ok, _, err := procSetConsoleMode.Call(hIn, uintptr(mode))
+func (mode inputMode) ApplyMode(fd uintptr) error {
+	ok, _, err := procSetConsoleMode.Call(fd, uintptr(mode))
 	if ok != 0 {
 		err = nil
 	}
@@ -352,13 +330,9 @@ func (mode inputMode) ApplyMode() error {
 //
 // This function is provided for convenience, and should
 // not be necessary for most users of liner.
-func TerminalMode() (ModeApplier, error) {
+func (s *State) TerminalMode() (ModeApplier, error) {
 	var mode inputMode
-	hIn, _, err := procGetStdHandle.Call(uintptr(std_input_handle))
-	if hIn == invalid_handle_value || hIn == 0 {
-		return nil, err
-	}
-	ok, _, err := procGetConsoleMode.Call(hIn, uintptr(unsafe.Pointer(&mode)))
+	ok, _, err := procGetConsoleMode.Call(s.infd, uintptr(unsafe.Pointer(&mode)))
 	if ok != 0 {
 		err = nil
 	}

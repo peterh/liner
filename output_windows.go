@@ -21,16 +21,16 @@ type consoleScreenBufferInfo struct {
 
 func (s *State) cursorPos(x int) {
 	var sbi consoleScreenBufferInfo
-	procGetConsoleScreenBufferInfo.Call(uintptr(s.hOut), uintptr(unsafe.Pointer(&sbi)))
-	procSetConsoleCursorPosition.Call(uintptr(s.hOut),
+	procGetConsoleScreenBufferInfo.Call(s.outfd, uintptr(unsafe.Pointer(&sbi)))
+	procSetConsoleCursorPosition.Call(s.outfd,
 		uintptr(int(x)&0xFFFF|int(sbi.dwCursorPosition.y)<<16))
 }
 
 func (s *State) eraseLine() {
 	var sbi consoleScreenBufferInfo
-	procGetConsoleScreenBufferInfo.Call(uintptr(s.hOut), uintptr(unsafe.Pointer(&sbi)))
+	procGetConsoleScreenBufferInfo.Call(s.outfd, uintptr(unsafe.Pointer(&sbi)))
 	var numWritten uint32
-	procFillConsoleOutputCharacter.Call(uintptr(s.hOut), uintptr(' '),
+	procFillConsoleOutputCharacter.Call(s.outfd, uintptr(' '),
 		uintptr(sbi.dwSize.x-sbi.dwCursorPosition.x),
 		uintptr(int(sbi.dwCursorPosition.x)&0xFFFF|int(sbi.dwCursorPosition.y)<<16),
 		uintptr(unsafe.Pointer(&numWritten)))
@@ -38,26 +38,26 @@ func (s *State) eraseLine() {
 
 func (s *State) eraseScreen() {
 	var sbi consoleScreenBufferInfo
-	procGetConsoleScreenBufferInfo.Call(uintptr(s.hOut), uintptr(unsafe.Pointer(&sbi)))
+	procGetConsoleScreenBufferInfo.Call(s.outfd, uintptr(unsafe.Pointer(&sbi)))
 	var numWritten uint32
-	procFillConsoleOutputCharacter.Call(uintptr(s.hOut), uintptr(' '),
+	procFillConsoleOutputCharacter.Call(s.outfd, uintptr(' '),
 		uintptr(sbi.dwSize.x)*uintptr(sbi.dwSize.y),
 		0,
 		uintptr(unsafe.Pointer(&numWritten)))
-	procSetConsoleCursorPosition.Call(uintptr(s.hOut), 0)
+	procSetConsoleCursorPosition.Call(s.outfd, 0)
 }
 
 func (s *State) moveUp(lines int) {
 	var sbi consoleScreenBufferInfo
-	procGetConsoleScreenBufferInfo.Call(uintptr(s.hOut), uintptr(unsafe.Pointer(&sbi)))
-	procSetConsoleCursorPosition.Call(uintptr(s.hOut),
+	procGetConsoleScreenBufferInfo.Call(s.outfd, uintptr(unsafe.Pointer(&sbi)))
+	procSetConsoleCursorPosition.Call(s.outfd,
 		uintptr(int(sbi.dwCursorPosition.x)&0xFFFF|(int(sbi.dwCursorPosition.y)-lines)<<16))
 }
 
 func (s *State) moveDown(lines int) {
 	var sbi consoleScreenBufferInfo
-	procGetConsoleScreenBufferInfo.Call(uintptr(s.hOut), uintptr(unsafe.Pointer(&sbi)))
-	procSetConsoleCursorPosition.Call(uintptr(s.hOut),
+	procGetConsoleScreenBufferInfo.Call(s.outfd, uintptr(unsafe.Pointer(&sbi)))
+	procSetConsoleCursorPosition.Call(s.outfd,
 		uintptr(int(sbi.dwCursorPosition.x)&0xFFFF|(int(sbi.dwCursorPosition.y)+lines)<<16))
 }
 
@@ -67,6 +67,6 @@ func (s *State) emitNewLine() {
 
 func (s *State) getColumns() {
 	var sbi consoleScreenBufferInfo
-	procGetConsoleScreenBufferInfo.Call(uintptr(s.hOut), uintptr(unsafe.Pointer(&sbi)))
+	procGetConsoleScreenBufferInfo.Call(s.outfd, uintptr(unsafe.Pointer(&sbi)))
 	s.columns = int(sbi.dwSize.x)
 }
