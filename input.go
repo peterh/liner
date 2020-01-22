@@ -36,6 +36,16 @@ type State struct {
 // restore the terminal to its previous state, call State.Close().
 func NewLiner() *State {
 	var s State
+	s.setWriter(os.Stdout)
+	s.setReader(os.Stdin)
+	s.init()
+	return &s
+}
+
+// NewLinerTTY initializes a new *State with connecting to tty.
+// This is useful when prompting regardless of the redirections.
+func NewLinerTTY() *State {
+	var s State
 	tty, err := tty.Open()
 	if err == nil {
 		s.setWriter(tty.Output())
@@ -45,7 +55,11 @@ func NewLiner() *State {
 		s.setWriter(os.Stdout)
 		s.setReader(os.Stdin)
 	}
+	s.init()
+	return &s
+}
 
+func (s *State) init() {
 	s.terminalSupported = TerminalSupported()
 	if m, err := s.TerminalMode(); err == nil {
 		s.origMode = *m.(*termios)
@@ -75,8 +89,6 @@ func NewLiner() *State {
 	if !s.outputRedirected {
 		s.outputRedirected = !s.getColumns()
 	}
-
-	return &s
 }
 
 var errTimedOut = errors.New("timeout")
