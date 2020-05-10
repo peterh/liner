@@ -2,6 +2,7 @@ package liner
 
 import (
 	"bufio"
+	"fmt"
 	"os"
 	"syscall"
 	"unicode/utf16"
@@ -342,8 +343,8 @@ func echoEOF() {
 
 func mapRune(r rune) rune {
 	switch r {
-	case CtrlZ:
-		r = CtrlD
+	case ctrlZ:
+		r = ctrlD
 	}
 	return r
 }

@@ -708,7 +708,11 @@ mainLoop:
 			case ctrlD: // del
 				if pos == 0 && len(line) == 0 {
 					// exit
-					echoEOF()
+					if v == ctrlD {
+						fmt.Println("^D")
+					} else {
+						echoEOF() // Print OS-specific string ("^Z" on Windows)
+					}
 					return "", io.EOF
 				}
 
