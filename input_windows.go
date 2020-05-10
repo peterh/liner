@@ -332,6 +332,10 @@ func (s *State) suspendFn() {
 	fmt.Println("^Z [unsupported on Windows]")
 }
 
+func (s *State) quitFn() {
+	fmt.Println("^\\ [unsupported on Windows]")
+}
+
 func echoEOF() {
 	fmt.Println("^Z")
 }

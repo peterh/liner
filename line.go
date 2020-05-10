@@ -52,34 +52,35 @@ const (
 )
 
 const (
-	ctrlA = 1
-	ctrlB = 2
-	ctrlC = 3
-	ctrlD = 4
-	ctrlE = 5
-	ctrlF = 6
-	ctrlG = 7
-	ctrlH = 8
-	tab   = 9
-	lf    = 10
-	ctrlK = 11
-	ctrlL = 12
-	cr    = 13
-	ctrlN = 14
-	ctrlO = 15
-	ctrlP = 16
-	ctrlQ = 17
-	ctrlR = 18
-	ctrlS = 19
-	ctrlT = 20
-	ctrlU = 21
-	ctrlV = 22
-	ctrlW = 23
-	ctrlX = 24
-	ctrlY = 25
-	ctrlZ = 26
-	esc   = 27
-	bs    = 127
+	ctrlA         = 1
+	ctrlB         = 2
+	ctrlC         = 3
+	ctrlD         = 4
+	ctrlE         = 5
+	ctrlF         = 6
+	ctrlG         = 7
+	ctrlH         = 8
+	tab           = 9
+	lf            = 10
+	ctrlK         = 11
+	ctrlL         = 12
+	cr            = 13
+	ctrlN         = 14
+	ctrlO         = 15
+	ctrlP         = 16
+	ctrlQ         = 17
+	ctrlR         = 18
+	ctrlS         = 19
+	ctrlT         = 20
+	ctrlU         = 21
+	ctrlV         = 22
+	ctrlW         = 23
+	ctrlX         = 24
+	ctrlY         = 25
+	ctrlZ         = 26
+	esc           = 27
+	ctrlBackslash = 28
+	bs            = 127
 )
 
 const (
@@ -338,6 +339,9 @@ func (s *State) printedTabs(items []string) func(tabDirection) (string, error) {
 						case ctrlZ:
 							s.suspendFn()
 							goto restart
+						case ctrlBackslash:
+							s.quitFn()
+							goto restart
 						}
 					}
 				}
@@ -487,10 +491,12 @@ func (s *State) reverseISearch(origLine []rune, origPos int) ([]rune, int, inter
 
 			case ctrlZ:
 				s.suspendFn()
+			case ctrlBackslash:
+				s.quitFn()
 			case tab, cr, lf, ctrlA, ctrlB, ctrlD, ctrlE, ctrlF, ctrlK,
 				ctrlL, ctrlN, ctrlO, ctrlP, ctrlQ, ctrlT, ctrlU, ctrlV, ctrlW, ctrlX, ctrlY:
 				fallthrough
-			case 0, ctrlC, esc, 28, 29, 30, 31:
+			case 0, ctrlC, esc, 29, 30, 31:
 				return []rune(foundLine), foundPos, next, err
 			default:
 				line = append(line[:pos], append([]rune{v}, line[pos:]...)...)
@@ -834,6 +840,9 @@ mainLoop:
 			case ctrlZ:
 				s.suspendFn()
 				s.needRefresh = true
+			case ctrlBackslash:
+				s.quitFn()
+				s.needRefresh = true
 			// Catch keys that do nothing, but you don't want them to beep
 			case esc:
 				// DO NOTHING
@@ -841,7 +850,7 @@ mainLoop:
 			case ctrlG, ctrlO, ctrlQ, ctrlS, ctrlV, ctrlX:
 				fallthrough
 			// Catch unhandled control codes (anything <= 31)
-			case 0, 28, 29, 30, 31:
+			case 0, 29, 30, 31:
 				s.doBeep()
 			default:
 				if pos == len(line) && !s.multiLineMode &&
@@ -1102,12 +1111,15 @@ mainLoop:
 			case ctrlZ:
 				s.suspendFn()
 				s.needRefresh = true
+			case ctrlBackslash:
+				s.quitFn()
+				s.needRefresh = true
 			// Unused keys
 			case esc, tab, ctrlA, ctrlB, ctrlE, ctrlF, ctrlG, ctrlK, ctrlN, ctrlO, ctrlP, ctrlQ, ctrlR, ctrlS,
 				ctrlT, ctrlU, ctrlV, ctrlW, ctrlX, ctrlY:
 				fallthrough
 			// Catch unhandled control codes (anything <= 31)
-			case 0, 28, 29, 30, 31:
+			case 0, 29, 30, 31:
 				s.doBeep()
 			default:
 				line = append(line[:pos], append([]rune{v}, line[pos:]...)...)

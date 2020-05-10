@@ -103,7 +103,7 @@ func (s *State) restartPrompt() {
 			n.r, _, n.err = s.r.ReadRune()
 			next <- n
 			// Shut down nexter loop when an end condition has been reached
-			if n.err != nil || n.r == '\n' || n.r == '\r' || n.r == ctrlC || n.r == ctrlD {
+			if n.err != nil || n.r == '\n' || n.r == '\r' || n.r == ctrlC || mapRune(n.r) == ctrlD {
 				close(next)
 				return
 			}
@@ -121,9 +121,23 @@ func (s *State) suspendFn() {
 	s.exitRawMode()
 	cont := make(chan os.Signal, 1)
 	signal.Notify(cont, syscall.SIGCONT)
-	//	p, _ := os.FindProcess(os.Getppid())  // Needed on OS X (Darwin) only?
-	//	p.Signal(syscall.SIGTSTP)  // Needed on OS X (Darwin) only?
 	syscall.Kill(syscall.Getpid(), syscall.SIGTSTP)
+	<-cont
+	s.enterRawMode()
+}
+
+func (s *State) quitFn() {
+	fmt.Println("^\\ [liner]")
+	s.exitRawMode()
+	// There's no reason to expect a SIGCONT, but by waiting for
+	// one anyway, the return to raw mode is avoided before the
+	// SIGQUIT reaches another thread, is processed, and the
+	// process terminates. If the client wishes to ignore SIGQUIT,
+	// it'll have to SIGCONT before ignoring to keep this liner
+	// instance running.
+	cont := make(chan os.Signal, 1)
+	signal.Notify(cont, syscall.SIGCONT)
+	syscall.Kill(syscall.Getpid(), syscall.SIGQUIT)
 	<-cont
 	s.enterRawMode()
 }
