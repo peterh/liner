@@ -117,7 +117,7 @@ func (s *State) stopPrompt() {
 }
 
 func (s *State) suspendFn() {
-	fmt.Println("^Z [liner]")
+	fmt.Println("^Z")
 	s.exitRawMode()
 	cont := make(chan os.Signal, 1)
 	signal.Notify(cont, syscall.SIGCONT)
@@ -127,7 +127,7 @@ func (s *State) suspendFn() {
 }
 
 func (s *State) quitFn() {
-	fmt.Println("^\\ [liner]")
+	fmt.Println("^\\")
 	s.exitRawMode()
 	// There's no reason to expect a SIGCONT, but by waiting for
 	// one anyway, the return to raw mode is avoided before the
