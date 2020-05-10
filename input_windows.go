@@ -65,13 +65,6 @@ func NewLiner() *State {
 	s.terminalSupported = true
 	if m, err := TerminalMode(); err == nil {
 		s.origMode = m.(inputMode)
-		mode := s.origMode
-		mode &^= enableEchoInput
-		mode &^= enableInsertMode
-		mode &^= enableLineInput
-		mode &^= enableMouseInput
-		mode |= enableWindowInput
-		mode.ApplyMode()
 	} else {
 		s.inputRedirected = true
 		s.r = bufio.NewReader(os.Stdin)
@@ -318,6 +311,11 @@ func (s *State) startPrompt() {
 	if m, err := TerminalMode(); err == nil {
 		s.defaultMode = m.(inputMode)
 		mode := s.defaultMode
+		mode &^= enableEchoInput
+		mode &^= enableInsertMode
+		mode &^= enableLineInput
+		mode &^= enableMouseInput
+		mode |= enableWindowInput
 		mode &^= enableProcessedInput
 		mode.ApplyMode()
 	}
@@ -328,6 +326,22 @@ func (s *State) restartPrompt() {
 
 func (s *State) stopPrompt() {
 	s.defaultMode.ApplyMode()
+}
+
+func (s *State) suspendFn() {
+	fmt.Println("^Z [unsupported on Windows]")
+}
+
+func echoEOF() {
+	fmt.Println("^Z")
+}
+
+func mapRune(r rune) rune {
+	switch r {
+	case CtrlZ:
+		r = CtrlD
+	}
+	return r
 }
 
 // TerminalSupported returns true because line editing is always
