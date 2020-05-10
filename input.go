@@ -121,6 +121,7 @@ func (s *State) suspendFn() {
 	s.exitRawMode()
 	cont := make(chan os.Signal, 1)
 	signal.Notify(cont, syscall.SIGCONT)
+	defer func() { signal.Stop(cont) }()
 	syscall.Kill(syscall.Getpid(), syscall.SIGTSTP)
 	<-cont
 	s.enterRawMode()
