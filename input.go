@@ -1,4 +1,4 @@
-// +build linux darwin openbsd freebsd netbsd
+// +build linux darwin openbsd freebsd netbsd solaris
 
 package liner
 
@@ -52,6 +52,8 @@ func NewLiner() *State {
 		mode.Iflag &^= icrnl | inpck | istrip | ixon
 		mode.Cflag |= cs8
 		mode.Lflag &^= syscall.ECHO | icanon | iexten
+		mode.Cc[syscall.VMIN] = 1
+		mode.Cc[syscall.VTIME] = 0
 		mode.ApplyMode()
 
 		winch := make(chan os.Signal, 1)
