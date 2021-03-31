@@ -792,6 +792,8 @@ mainLoop:
 				pos = 0
 				fmt.Print(prompt)
 				s.restartPrompt()
+			case ctrlZ:
+				handleCtrZ()
 			case ctrlH, bs: // Backspace
 				if pos <= 0 {
 					s.doBeep()
@@ -828,7 +830,7 @@ mainLoop:
 			case esc:
 				// DO NOTHING
 			// Unused keys
-			case ctrlG, ctrlO, ctrlQ, ctrlS, ctrlV, ctrlX, ctrlZ:
+			case ctrlG, ctrlO, ctrlQ, ctrlS, ctrlV, ctrlX:
 				fallthrough
 			// Catch unhandled control codes (anything <= 31)
 			case 0, 28, 29, 30, 31:
@@ -1089,9 +1091,11 @@ mainLoop:
 				pos = 0
 				fmt.Print(prompt)
 				s.restartPrompt()
+			case ctrlZ:
+				handleCtrZ()
 			// Unused keys
 			case esc, tab, ctrlA, ctrlB, ctrlE, ctrlF, ctrlG, ctrlK, ctrlN, ctrlO, ctrlP, ctrlQ, ctrlR, ctrlS,
-				ctrlT, ctrlU, ctrlV, ctrlW, ctrlX, ctrlY, ctrlZ:
+				ctrlT, ctrlU, ctrlV, ctrlW, ctrlX, ctrlY:
 				fallthrough
 			// Catch unhandled control codes (anything <= 31)
 			case 0, 28, 29, 30, 31:
