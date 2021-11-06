@@ -1,3 +1,4 @@
+//go:build !windows && !linux && !darwin && !openbsd && !freebsd && !netbsd
 // +build !windows,!linux,!darwin,!openbsd,!freebsd,!netbsd
 
 package liner
