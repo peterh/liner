@@ -40,6 +40,12 @@ Ctrl-Y       | Paste from Yank buffer (Alt-Y to paste next yank instead)
 Tab          | Next completion
 Shift-Tab    | (after Tab) Previous completion
 
+Note that "Previous" and "Next match from history" will retain the part of
+the line that the user has already typed, similar to zsh's
+"up-line-or-beginning-search" (which is the default on some systems) or
+bash's "history-search-backward" (which is my preferred behaviour, but does
+not appear to be the default `Up` keybinding on any system).
+
 Getting started
 -----------------
 
