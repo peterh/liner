@@ -11,6 +11,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"os"
 	"strings"
 	"sync"
 	"unicode/utf8"
@@ -34,6 +35,16 @@ type commonState struct {
 	shouldRestart     ShouldRestart
 	noBeep            bool
 	needRefresh       bool
+}
+
+// Option is optional configuration for State.
+type Option func(*State)
+
+// WithStdin specifies a stdin to use.
+func WithStdin(r io.Reader) Option {
+	return func(s *State) {
+		s.r = bufio.NewReader(os.Stdin)
+	}
 }
 
 // TabStyle is used to select how tab completions are displayed.

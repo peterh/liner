@@ -55,7 +55,7 @@ const (
 
 // NewLiner initializes a new *State, and sets the terminal into raw mode. To
 // restore the terminal to its previous state, call State.Close().
-func NewLiner() *State {
+func NewLiner(opts ...Option) *State {
 	var s State
 	hIn, _, _ := procGetStdHandle.Call(uintptr(std_input_handle))
 	s.handle = syscall.Handle(hIn)
@@ -80,6 +80,9 @@ func NewLiner() *State {
 	s.getColumns()
 	s.outputRedirected = s.columns <= 0
 
+	for _, opt := range opts {
+		opt(&s)
+	}
 	return &s
 }
 

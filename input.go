@@ -32,7 +32,7 @@ type State struct {
 
 // NewLiner initializes a new *State, and sets the terminal into raw mode. To
 // restore the terminal to its previous state, call State.Close().
-func NewLiner() *State {
+func NewLiner(opts ...Option) *State {
 	var s State
 	s.r = bufio.NewReader(os.Stdin)
 
@@ -68,6 +68,9 @@ func NewLiner() *State {
 		s.outputRedirected = !s.getColumns()
 	}
 
+	for _, opt := range opts {
+		opt(&s)
+	}
 	return &s
 }
 
