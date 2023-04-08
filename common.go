@@ -117,6 +117,7 @@ func (s *State) ReadHistory(r io.Reader) (num int, err error) {
 func (s *State) WriteHistory(w io.Writer) (num int, err error) {
 	s.historyMutex.RLock()
 	defer s.historyMutex.RUnlock()
+	s.history = deduplicateList(s.history)
 
 	for _, item := range s.history {
 		_, err := fmt.Fprintln(w, item)
@@ -125,7 +126,6 @@ func (s *State) WriteHistory(w io.Writer) (num int, err error) {
 		}
 		num++
 	}
-	s.history = deduplicateList(s.history)
 	return num, nil
 }
 
