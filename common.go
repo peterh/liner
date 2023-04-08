@@ -125,7 +125,28 @@ func (s *State) WriteHistory(w io.Writer) (num int, err error) {
 		}
 		num++
 	}
+	s.history = deduplicateList(s.history)
 	return num, nil
+}
+
+// deduplicateList map to keep track of encountered strings.
+// If not, it adds it to the result slice and sets the encountered flag for that item to true.
+// If it has already been encountered, it skips and moves to the next item.
+// Returns slice with all duplicates removed.
+func deduplicateList(items []string) []string {
+	var (
+		ok     = map[string]bool{}
+		result = []string{}
+	)
+
+	for _, item := range items {
+		if !ok[item] {
+			ok[item] = true
+			result = append(result, item)
+		}
+	}
+
+	return result
 }
 
 // AppendHistory appends an entry to the scrollback history. AppendHistory
