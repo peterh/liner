@@ -277,7 +277,11 @@ func (s *State) promptUnsupported(p string) (string, error) {
 func (s *State) getHistory(line string) (ph []string) {
 	switch s.historyMode {
 	case HistoryModePattern:
-		ph, _ = s.getHistoryByPattern(line)
+		if line == "" {
+			ph = append(ph, s.history...)
+		} else {
+			ph, _ = s.getHistoryByPattern(line)
+		}
 		return ph
 	default:
 		for _, h := range s.history {
