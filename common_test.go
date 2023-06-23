@@ -33,6 +33,20 @@ func TestState_getHistory(t *testing.T) {
 			history:     []string{"food", "foot", "tool"},
 			want:        []string{"food", "foot", "tool"},
 		},
+		{
+			name:        "empty string with pattern mode matches whole history",
+			line:        "",
+			historyMode: HistoryModePattern,
+			history:     []string{"food", "foot", "tool"},
+			want:        []string{"food", "foot", "tool"},
+		},
+		{
+			name:        "empty string with prefix mode matches whole history",
+			line:        "",
+			historyMode: HistoryModePrefix,
+			history:     []string{"food", "foot", "tool"},
+			want:        []string{"food", "foot", "tool"},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
