@@ -728,7 +728,7 @@ mainLoop:
 			case ctrlP: // up
 				historyAction = true
 				if historyStale {
-					historyPrefix = s.getHistoryByPrefix(string(line))
+					historyPrefix = s.getHistory(string(line))
 					historyPos = len(historyPrefix)
 					historyStale = false
 				}
@@ -746,7 +746,7 @@ mainLoop:
 			case ctrlN: // down
 				historyAction = true
 				if historyStale {
-					historyPrefix = s.getHistoryByPrefix(string(line))
+					historyPrefix = s.getHistory(string(line))
 					historyPos = len(historyPrefix)
 					historyStale = false
 				}
@@ -913,7 +913,7 @@ mainLoop:
 			case up:
 				historyAction = true
 				if historyStale {
-					historyPrefix = s.getHistoryByPrefix(string(line))
+					historyPrefix = s.getHistory(string(line))
 					historyPos = len(historyPrefix)
 					historyStale = false
 				}
@@ -930,7 +930,7 @@ mainLoop:
 			case down:
 				historyAction = true
 				if historyStale {
-					historyPrefix = s.getHistoryByPrefix(string(line))
+					historyPrefix = s.getHistory(string(line))
 					historyPos = len(historyPrefix)
 					historyStale = false
 				}
