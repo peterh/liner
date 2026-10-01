@@ -53,6 +53,12 @@ the line that the user has already typed, similar to zsh's
 bash's "history-search-backward" (which is my preferred behaviour, but does
 not appear to be the default `Up` keybinding on any system).
 
+Prompts should be kept short. If a prompt leaves fewer than 10 columns of
+working space in the terminal (terminal width < prompt width + 10), Liner falls
+back to unsupported mode (plain line reading without editing support). In this
+mode, pressing Ctrl-C raises SIGINT instead of resetting the prompt or
+returning `ErrPromptAborted`.
+
 Getting started
 -----------------
 

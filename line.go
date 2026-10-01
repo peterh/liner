@@ -592,6 +592,11 @@ func (s *State) yank(p []rune, text []rune, pos int) ([]rune, int, interface{}, 
 // Prompt displays p and returns a line of user input, not including a trailing
 // newline character. An io.EOF error is returned if the user signals end-of-file
 // by pressing Ctrl-D. Prompt allows line editing if the terminal supports it.
+//
+// Prompts should be kept short. If a prompt does not leave sufficient working
+// space in the terminal (terminal columns < prompt width + 10), Prompt falls
+// back to unsupported mode where line editing is disabled and pressing Ctrl-C
+// raises SIGINT rather than being handled by Liner.
 func (s *State) Prompt(prompt string) (string, error) {
 	return s.PromptWithSuggestion(prompt, "", 0)
 }
@@ -601,6 +606,11 @@ func (s *State) Prompt(prompt string) (string, error) {
 // is negative or greater than length of text (in runes). Returns a line of user input, not
 // including a trailing newline character. An io.EOF error is returned if the user
 // signals end-of-file by pressing Ctrl-D.
+//
+// Prompts should be kept short. If a prompt does not leave sufficient working
+// space in the terminal (terminal columns < prompt width + 10), PromptWithSuggestion
+// falls back to unsupported mode where line editing is disabled and pressing
+// Ctrl-C raises SIGINT rather than being handled by Liner.
 func (s *State) PromptWithSuggestion(prompt string, text string, pos int) (string, error) {
 	for _, r := range prompt {
 		if unicode.Is(unicode.C, r) {

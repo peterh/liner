@@ -1,8 +1,10 @@
 package liner
 
 import (
+	"bufio"
 	"bytes"
 	"fmt"
+	"os"
 	"strings"
 	"testing"
 )
@@ -144,3 +146,41 @@ func ExampleState_WriteHistory() {
 	// History entry 0 : foo
 	// History entry 1 : bar
 }
+
+func TestPromptTooNarrowFallback(t *testing.T) {
+	origStdout := os.Stdout
+	pr, pw, err := os.Pipe()
+	if err != nil {
+		t.Fatal(err)
+	}
+	os.Stdout = pw
+	defer func() {
+		os.Stdout = origStdout
+		pw.Close()
+		pr.Close()
+	}()
+
+	var s State
+	s.terminalSupported = true
+	s.columns = 20
+	// Prompt glyph count 11 + minWorkingSpace (10) = 21 > columns (20),
+	// which forces Liner into tooNarrow fallback mode (reading input directly).
+	prompt := "12345678901"
+	s.r = bufio.NewReader(strings.NewReader("fallback test input\n"))
+
+	line, err := s.Prompt(prompt)
+	if err != nil {
+		t.Fatalf("Unexpected error from Prompt in tooNarrow fallback: %v", err)
+	}
+	if line != "fallback test input" {
+		t.Fatalf("Expected 'fallback test input', got %q", line)
+	}
+
+	pw.Close()
+	var printed bytes.Buffer
+	printed.ReadFrom(pr)
+	if printed.String() != prompt {
+		t.Fatalf("Expected prompt %q to be printed, got %q", prompt, printed.String())
+	}
+}
+

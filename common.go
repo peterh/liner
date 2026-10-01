@@ -225,6 +225,8 @@ type ModeApplier interface {
 // ErrPromptAborted when Ctrl-C is pressed. The default is false (will not
 // return when Ctrl-C is pressed). Unsupported terminals typically raise SIGINT
 // (and Prompt does not return) regardless of the value passed to SetCtrlCAborts.
+// Prompts that leave insufficient working space on the terminal also cause
+// Prompt to fall back to unsupported mode, raising SIGINT on Ctrl-C.
 func (s *State) SetCtrlCAborts(aborts bool) {
 	s.ctrlCAborts = aborts
 }
