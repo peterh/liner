@@ -14,6 +14,7 @@ var (
 	procGetStdHandle                  = kernel32.NewProc("GetStdHandle")
 	procReadConsoleInput              = kernel32.NewProc("ReadConsoleInputW")
 	procGetNumberOfConsoleInputEvents = kernel32.NewProc("GetNumberOfConsoleInputEvents")
+	procPeekConsoleInput              = kernel32.NewProc("PeekConsoleInputW")
 	procGetConsoleMode                = kernel32.NewProc("GetConsoleMode")
 	procSetConsoleMode                = kernel32.NewProc("SetConsoleMode")
 	procSetConsoleCursorPosition      = kernel32.NewProc("SetConsoleCursorPosition")
@@ -152,19 +153,82 @@ const (
 	modKeys = shiftPressed | leftAltPressed | rightAltPressed | leftCtrlPressed | rightCtrlPressed
 )
 
+func isActionable(input *input_record) bool {
+	switch input.eventType {
+	case window_buffer_size_event:
+		return true
+	case key_event:
+		ke := (*key_event_record)(unsafe.Pointer(&input.blob[0]))
+		if ke.KeyDown == 0 {
+			return ke.VirtualKeyCode == vk_menu && ke.Char > 0
+		}
+		if ke.VirtualKeyCode == vk_tab && ke.ControlKeyState&modKeys == shiftPressed {
+			return true
+		} else if ke.VirtualKeyCode == vk_back && (ke.ControlKeyState&modKeys == leftAltPressed ||
+			ke.ControlKeyState&modKeys == rightAltPressed) {
+			return true
+		} else if (ke.VirtualKeyCode == bKey || ke.VirtualKeyCode == dKey ||
+			ke.VirtualKeyCode == fKey || ke.VirtualKeyCode == yKey) &&
+			(ke.ControlKeyState&modKeys == leftAltPressed || ke.ControlKeyState&modKeys == rightAltPressed) {
+			return true
+		} else if ke.Char > 0 {
+			return true
+		}
+		switch ke.VirtualKeyCode {
+		case vk_prior, vk_next, vk_end, vk_home, vk_left, vk_right,
+			vk_up, vk_down, vk_insert, vk_delete,
+			vk_f1, vk_f2, vk_f3, vk_f4, vk_f5, vk_f6,
+			vk_f7, vk_f8, vk_f9, vk_f10, vk_f11, vk_f12:
+			return true
+		default:
+			return false
+		}
+	default:
+		return false
+	}
+}
+
+func hasActionable(buf []input_record) bool {
+	for i := range buf {
+		if isActionable(&buf[i]) {
+			return true
+		}
+	}
+	return false
+}
+
 // inputWaiting only returns true if the next call to readNext will return immediately.
 func (s *State) inputWaiting() bool {
+	if s.repeat > 0 {
+		return true
+	}
+
 	var num uint32
 	ok, _, _ := procGetNumberOfConsoleInputEvents.Call(uintptr(s.handle), uintptr(unsafe.Pointer(&num)))
-	if ok == 0 {
-		// call failed, so we cannot guarantee a non-blocking readNext
+	if ok == 0 || num == 0 {
 		return false
 	}
 
-	// during a "paste" input events are always an odd number, and
-	// the last one results in a blocking readNext, so return false
-	// when num is 1 or 0.
-	return num > 1
+	var buf [64]input_record
+	limit := num
+	if limit > uint32(len(buf)) {
+		limit = uint32(len(buf))
+	}
+
+	var read uint32
+	ok, _, _ = procPeekConsoleInput.Call(uintptr(s.handle),
+		uintptr(unsafe.Pointer(&buf[0])), uintptr(limit), uintptr(unsafe.Pointer(&read)))
+	if ok == 0 || read == 0 {
+		return false
+	}
+
+	if hasActionable(buf[:read]) {
+		return true
+	}
+	if num > uint32(len(buf)) {
+		return true
+	}
+	return false
 }
 
 func (s *State) readNext() (interface{}, error) {
