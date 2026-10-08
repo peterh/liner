@@ -1,5 +1,4 @@
 //go:build windows || linux || darwin || openbsd || freebsd || netbsd || solaris
-// +build windows linux darwin openbsd freebsd netbsd solaris
 
 package liner
 
@@ -343,7 +342,7 @@ func (s *State) printedTabs(items []string) func(tabDirection) (string, error) {
 
 			numColumns, numRows, maxWidth := calculateColumns(s.columns, items)
 
-			for i := 0; i < numRows; i++ {
+			for i := range numRows {
 				for j := 0; j < numColumns*numRows; j += numRows {
 					if i+j < len(items) {
 						if maxWidth > 0 {
@@ -362,7 +361,7 @@ func (s *State) printedTabs(items []string) func(tabDirection) (string, error) {
 	}
 }
 
-func (s *State) tabComplete(p []rune, line []rune, pos int) ([]rune, int, interface{}, error) {
+func (s *State) tabComplete(p []rune, line []rune, pos int) ([]rune, int, any, error) {
 	if s.completer == nil {
 		return line, pos, rune(esc), nil
 	}
@@ -414,7 +413,7 @@ func (s *State) tabComplete(p []rune, line []rune, pos int) ([]rune, int, interf
 }
 
 // reverse intelligent search, implements a bash-like history search.
-func (s *State) reverseISearch(origLine []rune, origPos int) ([]rune, int, interface{}, error) {
+func (s *State) reverseISearch(origLine []rune, origPos int) ([]rune, int, any, error) {
 	p := "(reverse-i-search)`': "
 	err := s.refresh([]rune(p), origLine, origPos)
 	if err != nil {
@@ -548,7 +547,7 @@ func (s *State) addToKillRing(text []rune, mode int) {
 	s.killRing.Value = killLine
 }
 
-func (s *State) yank(p []rune, text []rune, pos int) ([]rune, int, interface{}, error) {
+func (s *State) yank(p []rune, text []rune, pos int) ([]rune, int, any, error) {
 	if s.killRing == nil {
 		return text, pos, rune(esc), nil
 	}

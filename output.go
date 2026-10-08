@@ -1,5 +1,4 @@
 //go:build linux || darwin || openbsd || freebsd || netbsd || solaris
-// +build linux darwin openbsd freebsd netbsd solaris
 
 package liner
 
