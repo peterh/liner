@@ -130,7 +130,12 @@ func (s *State) WriteHistory(w io.Writer) (num int, err error) {
 
 // AppendHistory appends an entry to the scrollback history. AppendHistory
 // should be called iff Prompt returns a valid command.
+// Entries containing newlines are ignored to prevent multi-line corruption
+// in the history file.
 func (s *State) AppendHistory(item string) {
+	if strings.ContainsAny(item, "\r\n") {
+		return
+	}
 	s.historyMutex.Lock()
 	defer s.historyMutex.Unlock()
 

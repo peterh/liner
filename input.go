@@ -14,8 +14,9 @@ import (
 )
 
 type nexter struct {
-	r   rune
-	err error
+	r    rune
+	err  error
+	more bool
 }
 
 // State represents an open terminal
@@ -27,6 +28,7 @@ type State struct {
 	winch       chan os.Signal
 	pending     []rune
 	useCHA      bool
+	readingMore bool
 }
 
 // NewLiner initializes a new *State, and sets the terminal into raw mode. To
@@ -85,18 +87,20 @@ func (s *State) startPrompt() {
 }
 
 func (s *State) inputWaiting() bool {
-	return len(s.next) > 0
+	return len(s.pending) > 0 || len(s.next) > 0 || s.readingMore
 }
 
 func (s *State) restartPrompt() {
-	next := make(chan nexter, 200)
+	s.readingMore = false
+	next := make(chan nexter, 1024)
 	go func() {
 		for {
 			var n nexter
 			n.r, _, n.err = s.r.ReadRune()
+			n.more = s.r.Buffered() > 0
 			next <- n
 			// Shut down nexter loop when an end condition has been reached
-			if n.err != nil || n.r == '\n' || n.r == '\r' || n.r == ctrlC || n.r == ctrlD {
+			if n.err != nil || ((n.r == '\n' || n.r == '\r') && !n.more) || n.r == ctrlC || n.r == ctrlD {
 				close(next)
 				return
 			}
@@ -115,11 +119,14 @@ func (s *State) nextPending(timeout <-chan time.Time) (rune, error) {
 	select {
 	case thing, ok := <-s.next:
 		if !ok {
+			s.readingMore = false
 			return 0, ErrInternal
 		}
 		if thing.err != nil {
+			s.readingMore = false
 			return 0, thing.err
 		}
+		s.readingMore = thing.more
 		s.pending = append(s.pending, thing.r)
 		return thing.r, nil
 	case <-timeout:
@@ -139,12 +146,15 @@ func (s *State) readNext() (any, error) {
 	select {
 	case thing, ok := <-s.next:
 		if !ok {
+			s.readingMore = false
 			return 0, ErrInternal
 		}
 		if thing.err != nil {
+			s.readingMore = false
 			return nil, thing.err
 		}
 		r = thing.r
+		s.readingMore = thing.more
 	case <-s.winch:
 		s.getColumns()
 		return winch, nil
