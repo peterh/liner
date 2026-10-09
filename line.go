@@ -671,7 +671,44 @@ mainLoop:
 		switch v := next.(type) {
 		case rune:
 			switch v {
-			case cr, lf:
+			case cr:
+				if s.inputWaiting() {
+					next, err = s.readNext()
+					if err != nil {
+						goto haveNext
+					}
+					if r, ok := next.(rune); ok && r == lf {
+						if s.inputWaiting() {
+							line = append(line[:pos], append([]rune{'\n'}, line[pos:]...)...)
+							pos++
+							s.needRefresh = true
+							continue
+						}
+					} else {
+						line = append(line[:pos], append([]rune{'\n'}, line[pos:]...)...)
+						pos++
+						s.needRefresh = true
+						goto haveNext
+					}
+				}
+				if s.needRefresh {
+					err := s.refresh(p, line, pos)
+					if err != nil {
+						return "", err
+					}
+				}
+				if s.multiLineMode {
+					s.resetMultiLine(p, line, pos)
+				}
+				fmt.Println()
+				break mainLoop
+			case lf:
+				if s.inputWaiting() {
+					line = append(line[:pos], append([]rune{'\n'}, line[pos:]...)...)
+					pos++
+					s.needRefresh = true
+					continue
+				}
 				if s.needRefresh {
 					err := s.refresh(p, line, pos)
 					if err != nil {

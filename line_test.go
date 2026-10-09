@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
+	"io"
 	"os"
 	"strings"
 	"testing"
@@ -181,6 +182,131 @@ func TestPromptTooNarrowFallback(t *testing.T) {
 	printed.ReadFrom(pr)
 	if printed.String() != prompt {
 		t.Fatalf("Expected prompt %q to be printed, got %q", prompt, printed.String())
+	}
+}
+
+func TestAppendHistoryMultiline(t *testing.T) {
+	var s State
+	s.AppendHistory("normal line 1")
+	s.AppendHistory("multi\nline")
+	s.AppendHistory("multi\r\nline")
+	s.AppendHistory("multi\rline")
+	s.AppendHistory("\n")
+	s.AppendHistory("\r\n")
+	s.AppendHistory("normal line 2")
+
+	var out bytes.Buffer
+	num, err := s.WriteHistory(&out)
+	if err != nil {
+		t.Fatal("Unexpected error writing history", err)
+	}
+	if num != 2 {
+		t.Fatalf("Expected 2 history entries, got %d", num)
+	}
+	expected := "normal line 1\nnormal line 2\n"
+	if out.String() != expected {
+		t.Fatalf("Expected history %q, got %q", expected, out.String())
+	}
+}
+
+func runTestPrompt(t *testing.T, input string) string {
+	origStdout := os.Stdout
+	pr, pw, err := os.Pipe()
+	if err != nil {
+		t.Fatal(err)
+	}
+	os.Stdout = pw
+	defer func() {
+		os.Stdout = origStdout
+		pw.Close()
+		pr.Close()
+	}()
+
+	var s State
+	s.terminalSupported = true
+	s.columns = 80
+	s.r = bufio.NewReader(strings.NewReader(input))
+
+	done := make(chan struct{})
+	go func() {
+		io.Copy(io.Discard, pr)
+		close(done)
+	}()
+
+	line, err := s.Prompt("")
+	if err != nil {
+		t.Fatalf("Unexpected error from Prompt for input %q: %v", input, err)
+	}
+	pw.Close()
+	<-done
+	return line
+}
+
+func TestPromptMultilinePaste(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		expected string
+	}{
+		{
+			name:     "single line with lf",
+			input:    "single line\n",
+			expected: "single line",
+		},
+		{
+			name:     "single line with crlf",
+			input:    "single line\r\n",
+			expected: "single line",
+		},
+		{
+			name:     "single line with cr",
+			input:    "single line\r",
+			expected: "single line",
+		},
+		{
+			name:     "two lines with lf",
+			input:    "first line\nsecond line\n",
+			expected: "first line\nsecond line",
+		},
+		{
+			name:     "two lines with crlf",
+			input:    "first line\r\nsecond line\r\n",
+			expected: "first line\nsecond line",
+		},
+		{
+			name:     "three lines with lf",
+			input:    "line1\nline2\nline3\n",
+			expected: "line1\nline2\nline3",
+		},
+		{
+			name:     "three lines with crlf",
+			input:    "line1\r\nline2\r\nline3\r\n",
+			expected: "line1\nline2\nline3",
+		},
+		{
+			name:     "empty line between lines",
+			input:    "first\n\nsecond\n",
+			expected: "first\n\nsecond",
+		},
+		{
+			name:     "empty line between lines crlf",
+			input:    "first\r\n\r\nsecond\r\n",
+			expected: "first\n\nsecond",
+		},
+		{
+			name:     "multiline without trailing newline followed by enter",
+			input:    "foo\nbar\r",
+			expected: "foo\nbar",
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			got := runTestPrompt(t, tc.input)
+			if got != tc.expected {
+				t.Fatalf("Expected %q, got %q", tc.expected, got)
+			}
+		})
 	}
 }
 
