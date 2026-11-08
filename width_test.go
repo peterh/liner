@@ -105,9 +105,9 @@ func TestSuffixGlyphs(t *testing.T) {
 // the case the tests above already cover; these are the rest of them.
 var multiRuneCases = []testCase{
 	{[]rune("\U0001F468\u200d\U0001F469\u200d\U0001F467\u200d\U0001F466"), 2}, // family
-	{[]rune("\U0001F3F3\ufe0f\u200d\U0001F308"), 2},                      // rainbow flag
-	{[]rune("\U0001F44D\U0001F3FD"), 2},                        // thumb with a skin tone
-	{[]rune("\U0001F1EF\U0001F1F5"), 2},                        // flag, a pair of regional indicators
+	{[]rune("\U0001F3F3\ufe0f\u200d\U0001F308"), 2},                           // rainbow flag
+	{[]rune("\U0001F44D\U0001F3FD"), 2},                                       // thumb with a skin tone
+	{[]rune("\U0001F1EF\U0001F1F5"), 2},                                       // flag, a pair of regional indicators
 }
 
 func TestCountGlyphsMultiRune(t *testing.T) {
