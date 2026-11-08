@@ -1,46 +1,52 @@
 package liner
 
 import (
-	"unicode"
-
+	"github.com/clipperhouse/uax29/v2/graphemes"
 	"github.com/mattn/go-runewidth"
 )
 
-// These character classes are mostly zero width (when combined).
-// A few might not be, depending on the user's font. Fixing this
-// is non-trivial, given that some terminals don't support
-// ANSI DSR/CPR
-var zeroWidth = []*unicode.RangeTable{
-	unicode.Mn,
-	unicode.Me,
-	unicode.Cc,
-	unicode.Cf,
+// glyphs splits s into the sequences of runes a terminal draws as one
+// character each, by the extended grapheme cluster rules of UAX #29.
+//
+// A glyph is often one rune and need not be. A letter followed by a combining
+// accent is one, and so are the emoji built out of several runes: a flag is a
+// pair of regional indicators, a thumb carries its skin tone in a second rune,
+// and a family is four people joined by zero-width joiners.
+func glyphs(s []rune) [][]rune {
+	var out [][]rune
+	for g := graphemes.FromString(string(s)); g.Next(); {
+		out = append(out, []rune(g.Value()))
+	}
+	return out
 }
 
 // countGlyphs considers zero-width characters to be zero glyphs wide,
 // and members of Chinese, Japanese, and Korean scripts to be 2 glyphs wide.
 func countGlyphs(s []rune) int {
 	n := 0
-	for _, r := range s {
+	for g := graphemes.FromString(string(s)); g.Next(); {
+		glyph := g.Value()
+
 		// speed up the common case
-		if r < 127 {
+		if len(glyph) == 1 && glyph[0] < 127 {
 			n++
 			continue
 		}
 
-		n += runewidth.RuneWidth(r)
+		n += runewidth.StringWidth(glyph)
 	}
 	return n
 }
 
 func countMultiLineGlyphs(s []rune, columns int, start int) int {
 	n := start
-	for _, r := range s {
-		if r < 127 {
+	for g := graphemes.FromString(string(s)); g.Next(); {
+		glyph := g.Value()
+		if len(glyph) == 1 && glyph[0] < 127 {
 			n++
 			continue
 		}
-		switch runewidth.RuneWidth(r) {
+		switch runewidth.StringWidth(glyph) {
 		case 0:
 		case 1:
 			n++
@@ -57,34 +63,19 @@ func countMultiLineGlyphs(s []rune, columns int, start int) int {
 }
 
 func getPrefixGlyphs(s []rune, num int) []rune {
+	g := glyphs(s)
 	p := 0
-	for n := 0; n < num && p < len(s); p++ {
-		// speed up the common case
-		if s[p] < 127 {
-			n++
-			continue
-		}
-		if !unicode.IsOneOf(zeroWidth, s[p]) {
-			n++
-		}
-	}
-	for p < len(s) && unicode.IsOneOf(zeroWidth, s[p]) {
-		p++
+	for n := 0; n < num && n < len(g); n++ {
+		p += len(g[n])
 	}
 	return s[:p]
 }
 
 func getSuffixGlyphs(s []rune, num int) []rune {
+	g := glyphs(s)
 	p := len(s)
-	for n := 0; n < num && p > 0; p-- {
-		// speed up the common case
-		if s[p-1] < 127 {
-			n++
-			continue
-		}
-		if !unicode.IsOneOf(zeroWidth, s[p-1]) {
-			n++
-		}
+	for n := 0; n < num && n < len(g); n++ {
+		p -= len(g[len(g)-1-n])
 	}
 	return s[p:]
 }
