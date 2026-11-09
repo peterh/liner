@@ -100,3 +100,67 @@ func TestSuffixGlyphs(t *testing.T) {
 		}
 	}
 }
+
+// Glyphs a terminal draws as one character out of several runes. An accent is
+// the case the tests above already cover; these are the rest of them.
+var multiRuneCases = []testCase{
+	{[]rune("\U0001F468\u200d\U0001F469\u200d\U0001F467\u200d\U0001F466"), 2}, // family
+	{[]rune("\U0001F3F3\ufe0f\u200d\U0001F308"), 2},                           // rainbow flag
+	{[]rune("\U0001F44D\U0001F3FD"), 2},                                       // thumb with a skin tone
+	{[]rune("\U0001F1EF\U0001F1F5"), 2},                                       // flag, a pair of regional indicators
+}
+
+func TestCountGlyphsMultiRune(t *testing.T) {
+	for _, testCase := range multiRuneCases {
+		count := countGlyphs(testCase.s)
+		if count != testCase.glyphs {
+			t.Errorf("%q counted as %d glyphs, occupies %d",
+				string(testCase.s), count, testCase.glyphs)
+		}
+	}
+}
+
+// A line of one-glyph-wide characters must not be thought wider than it is,
+// or the prompt wraps where it does not need to.
+func TestCountMultiLineGlyphsMultiRune(t *testing.T) {
+	for _, testCase := range multiRuneCases {
+		var line []rune
+		for i := 0; i < 40; i++ {
+			line = append(line, testCase.s...)
+		}
+		want := 40 * testCase.glyphs
+		if got := countMultiLineGlyphs(line, 80, 0); got != want {
+			t.Errorf("40 copies of %q wrapped to %d columns, occupies %d",
+				string(testCase.s), got, want)
+		}
+	}
+}
+
+// Moving over one glyph must move over all of it. Stopping partway leaves the
+// cursor inside the character, and the runes either side of it get edited
+// separately.
+func TestGlyphMovementKeepsGlyphsWhole(t *testing.T) {
+	for _, testCase := range multiRuneCases {
+		out := getPrefixGlyphs(testCase.s, 1)
+		if len(out) != len(testCase.s) {
+			t.Errorf("prefix of one glyph of %q took %d of its %d runes",
+				string(testCase.s), len(out), len(testCase.s))
+		}
+		out = getSuffixGlyphs(testCase.s, 1)
+		if len(out) != len(testCase.s) {
+			t.Errorf("suffix of one glyph of %q took %d of its %d runes",
+				string(testCase.s), len(out), len(testCase.s))
+		}
+
+		// And one glyph of "a<glyph>b" is just the "a".
+		padded := append(append([]rune("a"), testCase.s...), 'b')
+		if out = getPrefixGlyphs(padded, 1); len(out) != 1 {
+			t.Errorf("prefix of one glyph of %q took %d runes, wanted 1",
+				string(padded), len(out))
+		}
+		if out = getSuffixGlyphs(padded, 1); len(out) != 1 {
+			t.Errorf("suffix of one glyph of %q took %d runes, wanted 1",
+				string(padded), len(out))
+		}
+	}
+}
