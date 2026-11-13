@@ -117,6 +117,7 @@ func (s *State) ReadHistory(r io.Reader) (num int, err error) {
 func (s *State) WriteHistory(w io.Writer) (num int, err error) {
 	s.historyMutex.RLock()
 	defer s.historyMutex.RUnlock()
+	s.history = deduplicateList(s.history)
 
 	for _, item := range s.history {
 		_, err := fmt.Fprintln(w, item)
@@ -126,6 +127,26 @@ func (s *State) WriteHistory(w io.Writer) (num int, err error) {
 		num++
 	}
 	return num, nil
+}
+
+// deduplicateList map to keep track of encountered strings.
+// If not, it adds it to the result slice and sets the encountered flag for that item to true.
+// If it has already been encountered, it skips and moves to the next item.
+// Returns slice with all duplicates removed.
+func deduplicateList(items []string) []string {
+	var (
+		ok     = map[string]bool{}
+		result = []string{}
+	)
+
+	for _, item := range items {
+		if !ok[item] {
+			ok[item] = true
+			result = append(result, item)
+		}
+	}
+
+	return result
 }
 
 // AppendHistory appends an entry to the scrollback history. AppendHistory
