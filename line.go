@@ -232,6 +232,7 @@ func (s *State) refreshMultiLine(prompt []rune, buf []rune, pos int) error {
 	s.cursorPos(cursorColumns % s.columns)
 
 	s.cursorRows = cursorRows
+	s.maxRows = totalRows
 	return nil
 }
 
