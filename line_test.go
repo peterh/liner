@@ -184,3 +184,25 @@ func TestPromptTooNarrowFallback(t *testing.T) {
 	}
 }
 
+func TestRefreshMultiLineShrinksRowCount(t *testing.T) {
+	var s State
+	s.columns = 10
+	s.maxRows = 1
+	prompt := []rune("> ")
+	long := []rune("abcdefghijklmnopqrstuvwxyz")
+	short := []rune("hi")
+
+	if err := s.refreshMultiLine(prompt, long, len(long)); err != nil {
+		t.Fatal(err)
+	}
+	if s.maxRows != 3 {
+		t.Fatalf("long input rows = %d, want 3", s.maxRows)
+	}
+
+	if err := s.refreshMultiLine(prompt, short, len(short)); err != nil {
+		t.Fatal(err)
+	}
+	if s.maxRows != 1 {
+		t.Fatalf("short input rows = %d, want 1", s.maxRows)
+	}
+}
